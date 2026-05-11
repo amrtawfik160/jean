@@ -4,7 +4,9 @@ import { useUIStore } from '@/store/ui-store'
 import { useProjectsStore } from '@/store/projects-store'
 import { isNativeApp } from '@/lib/environment'
 
-const BASE = 52
+// Bumped from 52 → 64 to clear the new 24px StatusStrip docked at the
+// bottom of MainWindow.
+const BASE = 64
 const GUTTER = 12
 
 export function useToasterOffset() {

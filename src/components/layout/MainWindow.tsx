@@ -18,6 +18,7 @@ import { SidebarWidthProvider } from './SidebarWidthContext'
 import { MainWindowContent } from './MainWindowContent'
 import { CommandPalette } from '@/components/command-palette/CommandPalette'
 import { ShortcutCheatsheet } from '@/components/command-palette/ShortcutCheatsheet'
+import { StatusStrip } from './StatusStrip'
 import { QuitConfirmationDialog } from './QuitConfirmationDialog'
 import { BranchConflictDialog } from '@/components/worktree/BranchConflictDialog'
 import { TeardownOutputDialog } from '@/components/worktree/TeardownOutputDialog'
@@ -508,6 +509,9 @@ export function MainWindow() {
         {/* Browser side pane - native-only, mounts on right edge */}
         <BrowserSidePane />
       </div>
+
+      {/* Linear-style bottom status strip */}
+      <StatusStrip />
 
       {/* Global UI Components (hidden until triggered) */}
       <CommandPalette />

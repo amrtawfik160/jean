@@ -25,6 +25,7 @@ import { UnreadBell } from '@/components/unread/UnreadBell'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { FALLBACK_APP_VERSION } from '@/lib/app-version'
 import { LinuxWindowControls } from './LinuxWindowControls'
+import { BreadcrumbBar } from '@/components/layout/BreadcrumbBar'
 
 interface TitleBarProps {
   className?: string
@@ -156,13 +157,23 @@ export function TitleBar({
         </div>
       </div>
 
-      {/* Center - Title / Unread indicator */}
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[50%] px-2"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      >
-        <UnreadBell title={title} hideTitle={hideTitle} />
-      </div>
+      {/* Center - Breadcrumb + unread bell */}
+      {!isMobile ? (
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex max-w-[60%] items-center gap-2 px-2"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          <BreadcrumbBar />
+          <UnreadBell title="" hideTitle />
+        </div>
+      ) : (
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[50%] px-2"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          <UnreadBell title={title} hideTitle={hideTitle} />
+        </div>
+      )}
 
       {/* Right side - Version + Windows/Linux window controls */}
       <div
