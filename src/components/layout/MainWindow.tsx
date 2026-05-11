@@ -19,6 +19,7 @@ import { MainWindowContent } from './MainWindowContent'
 import { CommandPalette } from '@/components/command-palette/CommandPalette'
 import { ShortcutCheatsheet } from '@/components/command-palette/ShortcutCheatsheet'
 import { StatusStrip } from './StatusStrip'
+import { RightContextRail } from './RightContextRail'
 import { QuitConfirmationDialog } from './QuitConfirmationDialog'
 import { BranchConflictDialog } from '@/components/worktree/BranchConflictDialog'
 import { TeardownOutputDialog } from '@/components/worktree/TeardownOutputDialog'
@@ -505,6 +506,9 @@ export function MainWindow() {
           {/* Browser bottom panel - native-only, pinned to bottom */}
           <BrowserPanel />
         </div>
+
+        {/* Linear-style right context rail (toggleable) */}
+        <RightContextRail />
 
         {/* Browser side pane - native-only, mounts on right edge */}
         <BrowserSidePane />

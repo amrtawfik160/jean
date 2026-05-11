@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { ChevronRight, Folder } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { convertFileSrc } from '@/lib/transport'
@@ -117,43 +118,56 @@ export function BreadcrumbBar({ className }: { className?: string }) {
         <span className="truncate">{project.name}</span>
       </button>
 
-      {showWorktree && worktree && (
-        <>
-          <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
-          <button
-            type="button"
-            onClick={handleWorktreeClick}
-            className={cn(
-              'inline-flex h-6 max-w-[200px] items-center rounded-md px-1.5',
-              'transition-colors duration-150 hover:bg-accent',
-              showSession ? 'text-muted-foreground' : 'text-foreground'
-            )}
+      <AnimatePresence initial={false}>
+        {showWorktree && worktree && (
+          <motion.span
+            key="worktree-segment"
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -4 }}
+            transition={{ duration: 0.15 }}
+            className="flex min-w-0 items-center gap-1"
           >
-            <span className="truncate">{worktree.name}</span>
-            {worktree.branch !== worktree.name && (
-              <span className="ml-1.5 truncate text-xs text-muted-foreground/70">
-                {worktree.branch}
+            <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
+            <button
+              type="button"
+              onClick={handleWorktreeClick}
+              className={cn(
+                'inline-flex h-6 max-w-[200px] items-center rounded-md px-1.5',
+                'transition-colors duration-150 hover:bg-accent',
+                showSession ? 'text-muted-foreground' : 'text-foreground'
+              )}
+            >
+              <span className="truncate">{worktree.name}</span>
+              {worktree.branch !== worktree.name && (
+                <span className="ml-1.5 truncate text-xs text-muted-foreground/70">
+                  {worktree.branch}
+                </span>
+              )}
+            </button>
+          </motion.span>
+        )}
+        {showSession && activeSession && (
+          <motion.span
+            key="session-segment"
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -4 }}
+            transition={{ duration: 0.15 }}
+            className="flex min-w-0 items-center gap-1"
+          >
+            <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
+            <span
+              className="inline-flex h-6 max-w-[260px] items-center px-1.5 text-foreground"
+              title={activeSession.name || activeSession.id}
+            >
+              <span className="truncate">
+                {activeSession.name || 'Untitled session'}
               </span>
-            )}
-          </button>
-        </>
-      )}
-
-      {showSession && activeSession && (
-        <>
-          <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
-          <span
-            className={cn(
-              'inline-flex h-6 max-w-[260px] items-center px-1.5 text-foreground'
-            )}
-            title={activeSession.name || activeSession.id}
-          >
-            <span className="truncate">
-              {activeSession.name || 'Untitled session'}
             </span>
-          </span>
-        </>
-      )}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </nav>
   )
 }

@@ -14,10 +14,19 @@ import {
   ArrowUpCircle,
   Github,
   Heart,
+  MoreHorizontal,
   PanelLeft,
   PanelLeftClose,
+  PanelRight,
   Settings,
 } from '@/components/icons'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { usePreferences } from '@/services/preferences'
 import { formatShortcutDisplay, DEFAULT_KEYBINDINGS } from '@/types/keybindings'
 import { isNativeApp } from '@/lib/environment'
@@ -39,6 +48,8 @@ export function TitleBar({
   hideTitle = false,
 }: TitleBarProps) {
   const { leftSidebarVisible, toggleLeftSidebar } = useUIStore()
+  const rightSidebarVisible = useUIStore(s => s.rightSidebarVisible)
+  const setRightSidebarVisible = useUIStore(s => s.setRightSidebarVisible)
   const commandContext = useCommandContext()
   const { data: preferences } = usePreferences()
   const isMobile = useIsMobile()
@@ -125,35 +136,47 @@ export function TitleBar({
             </TooltipContent>
           </Tooltip>
           {!isMobile && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent/60"
+                    >
+                      <MoreHorizontal className="size-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>More</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="start" className="min-w-[180px]">
+                <DropdownMenuItem
                   onClick={() =>
                     openExternal('https://github.com/coollabsio/jean')
                   }
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent/60"
                 >
-                  <Github className="size-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>GitHub</TooltipContent>
-            </Tooltip>
+                  <Github className="mr-2 size-3.5" />
+                  GitHub
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => openExternal('https://jean.build')}
+                >
+                  <ArrowUpCircle className="mr-2 size-3.5" />
+                  Website
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => openExternal('https://jean.build/sponsorships/')}
+                  className="text-pink-500 focus:text-pink-400"
+                >
+                  <Heart className="mr-2 size-3.5" />
+                  Sponsor
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={() => openExternal('https://jean.build/sponsorships/')}
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 rounded-md text-pink-500 hover:text-pink-400 hover:bg-pink-500/10"
-              >
-                <Heart className="size-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Sponsor</TooltipContent>
-          </Tooltip>
         </div>
       </div>
 
@@ -195,6 +218,34 @@ export function TitleBar({
               </Button>
             </TooltipTrigger>
             <TooltipContent>GitHub</TooltipContent>
+          </Tooltip>
+        )}
+        {!isMobile && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setRightSidebarVisible(!rightSidebarVisible)}
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'mr-1 h-6 w-6 rounded-md hover:bg-accent/60',
+                  rightSidebarVisible
+                    ? 'text-primary hover:text-primary'
+                    : 'text-foreground/60 hover:text-foreground'
+                )}
+              >
+                <PanelRight className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {rightSidebarVisible ? 'Hide' : 'Show'} context rail{' '}
+              <kbd className="ml-1 text-[0.625rem] opacity-60">
+                {formatShortcutDisplay(
+                  (preferences?.keybindings?.toggle_right_sidebar ||
+                    DEFAULT_KEYBINDINGS.toggle_right_sidebar) as string
+                )}
+              </kbd>
+            </TooltipContent>
           </Tooltip>
         )}
         {appVersion && <UpdateIndicator />}
