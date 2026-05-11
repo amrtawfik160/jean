@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react'
-import { Copy } from 'lucide-react'
+import { Copy } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { normalizePath } from '@/lib/path-utils'
 import { Markdown } from '@/components/ui/markdown'
@@ -806,7 +806,7 @@ export const MessageItem = memo(function MessageItem({
               <TooltipContent>Copy to clipboard</TooltipContent>
             </Tooltip>
           )}
-          <div className="text-foreground border border-border rounded-lg px-3 py-2 bg-muted/20 min-w-0 break-words">
+          <div className="text-foreground border border-border/60 rounded-xl px-3.5 py-2 bg-surface-2 shadow-[0_1px_2px_oklch(0_0_0/0.25)] min-w-0 break-words">
             {messageBoxContent}
             {message.model && (
               <div className="mt-1.5">

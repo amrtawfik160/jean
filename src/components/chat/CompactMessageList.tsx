@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react'
 import { flushSync } from 'react-dom'
-import { ChevronRight, Loader2, Activity, Brain } from 'lucide-react'
+import { ChevronRight, Loader2, Activity, Brain } from '@/components/icons'
 import { Markdown } from '@/components/ui/markdown'
 import {
   Collapsible,

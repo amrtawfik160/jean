@@ -19,7 +19,7 @@ import {
   verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable'
-import { ChevronsDownUp, ChevronsUpDown, Folder } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, Folder } from '@/components/icons'
 import { isFolder, type Project } from '@/types/projects'
 import { ProjectTreeItem } from './ProjectTreeItem'
 import { FolderTreeItem } from './FolderTreeItem'

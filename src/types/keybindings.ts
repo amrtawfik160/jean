@@ -2,6 +2,7 @@
 export type KeybindingAction =
   | 'focus_chat_input'
   | 'toggle_left_sidebar'
+  | 'toggle_right_sidebar'
   | 'open_preferences'
   | 'open_commit_modal'
   | 'open_git_diff'
@@ -40,6 +41,11 @@ export type KeybindingAction =
   | 'open_quick_menu'
   | 'open_usage_dropdown'
   | 'search_chat'
+  | 'open_shortcut_cheatsheet'
+  | 'copy_session_link'
+  | 'focus_next_pane'
+  | 'focus_prev_pane'
+  | 'quick_new_chat'
 
 // Shortcut string format: "mod+key" where mod is cmd/ctrl
 // Examples: "mod+l", "mod+shift+p", "mod+1"
@@ -61,6 +67,12 @@ export interface KeybindingDefinition {
 export const DEFAULT_KEYBINDINGS: KeybindingsMap = {
   focus_chat_input: 'mod+l',
   toggle_left_sidebar: 'mod+b',
+  toggle_right_sidebar: 'mod+shift+b',
+  open_shortcut_cheatsheet: 'mod+slash',
+  copy_session_link: 'mod+shift+l',
+  focus_next_pane: 'mod+bracketright',
+  focus_prev_pane: 'mod+bracketleft',
+  quick_new_chat: 'mod+shift+n',
   open_preferences: 'mod+comma',
   open_commit_modal: 'mod+shift+c',
   open_git_diff: 'mod+g',
@@ -116,6 +128,48 @@ export const KEYBINDING_DEFINITIONS: KeybindingDefinition[] = [
     description: 'Show or hide the projects sidebar',
     default_shortcut: 'mod+b',
     category: 'navigation',
+  },
+  {
+    action: 'toggle_right_sidebar',
+    label: 'Toggle right sidebar',
+    description: 'Show or hide the right sidebar',
+    default_shortcut: 'mod+shift+b',
+    category: 'navigation',
+  },
+  {
+    action: 'open_shortcut_cheatsheet',
+    label: 'Show keyboard shortcuts',
+    description: 'Open the full keyboard shortcut cheatsheet overlay',
+    default_shortcut: 'mod+slash',
+    category: 'navigation',
+  },
+  {
+    action: 'copy_session_link',
+    label: 'Copy session link',
+    description: 'Copy a deep-link to the current session',
+    default_shortcut: 'mod+shift+l',
+    category: 'chat',
+  },
+  {
+    action: 'focus_next_pane',
+    label: 'Focus next pane',
+    description: 'Cycle focus across left sidebar / canvas / chat / right pane',
+    default_shortcut: 'mod+bracketright',
+    category: 'navigation',
+  },
+  {
+    action: 'focus_prev_pane',
+    label: 'Focus previous pane',
+    description: 'Cycle focus backwards across panes',
+    default_shortcut: 'mod+bracketleft',
+    category: 'navigation',
+  },
+  {
+    action: 'quick_new_chat',
+    label: 'Quick new chat',
+    description: 'Open the new-session prompt with focus pre-set',
+    default_shortcut: 'mod+shift+n',
+    category: 'chat',
   },
   {
     action: 'open_preferences',
@@ -435,6 +489,12 @@ export function formatShortcutDisplay(
           return 'Esc'
         case 'backquote':
           return '`'
+        case 'bracketleft':
+          return '['
+        case 'bracketright':
+          return ']'
+        case 'space':
+          return 'Space'
         default:
           return part.toUpperCase()
       }

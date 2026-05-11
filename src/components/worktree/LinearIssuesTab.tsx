@@ -1,4 +1,4 @@
-import { Loader2, Search, RefreshCw, AlertCircle } from 'lucide-react'
+import { Loader2, Search, RefreshCw, AlertCircle } from '@/components/icons'
 import { isLinearAuthError } from '@/services/linear'
 import { LinearAuthError } from '@/components/shared/LinearAuthError'
 import { ScrollArea } from '@/components/ui/scroll-area'

@@ -18,7 +18,7 @@ import {
   Github,
   GitPullRequest,
   ShieldAlert,
-} from 'lucide-react'
+} from '@/components/icons'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -412,7 +412,7 @@ export function FloatingDock() {
 
   return (
     <div
-      className="absolute right-4 z-10 flex flex-row items-center gap-0.5 rounded-lg border border-border bg-muted/50 backdrop-blur-md px-1 py-0.5 transition-[bottom] duration-200 sm:left-4 sm:right-auto sm:flex-col sm:px-0.5 sm:py-1 xl:flex-row xl:px-1 xl:py-0.5"
+      className="absolute right-4 z-10 flex flex-row items-center gap-0.5 rounded-full border border-border/70 bg-popover/80 backdrop-blur-md shadow-[0_4px_16px_-4px_oklch(0_0_0/0.4)] px-1 py-0.5 transition-[bottom] duration-200 sm:left-4 sm:right-auto sm:flex-col sm:rounded-2xl sm:px-0.5 sm:py-1 xl:flex-row xl:rounded-full xl:px-1 xl:py-0.5"
       style={{ bottom: bottomOffset }}
     >
       <DropdownMenu open={menuOpen} onOpenChange={handleQuickMenuOpenChange}>

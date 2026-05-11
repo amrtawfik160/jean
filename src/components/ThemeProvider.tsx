@@ -1,81 +1,26 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-  useRef,
-} from 'react'
-import { ThemeProviderContext, type Theme } from '@/lib/theme-context'
-import { usePreferences } from '@/services/preferences'
+import { useEffect, useMemo } from 'react'
+import { ThemeProviderContext } from '@/lib/theme-context'
+
+const noop = () => undefined
 
 interface ThemeProviderProps {
   children: React.ReactNode
-  defaultTheme?: Theme
-  storageKey?: string
 }
 
-export function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-  storageKey = 'ui-theme',
-  ...props
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
-
-  // Load theme from persistent preferences
-  const { data: preferences } = usePreferences()
-  const hasSyncedPreferences = useRef(false)
-
-  // Sync theme with preferences when they load
-  // This is a legitimate case of syncing with external async state (persistent preferences)
-  // The ref ensures this only happens once when preferences first load
-  useLayoutEffect(() => {
-    if (preferences?.theme && !hasSyncedPreferences.current) {
-      hasSyncedPreferences.current = true
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing with external async preferences on initial load
-      setTheme(preferences.theme as Theme)
-    }
-  }, [preferences?.theme])
-
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   useEffect(() => {
     const root = window.document.documentElement
-
-    const applyTheme = (resolvedTheme: 'light' | 'dark') => {
-      root.classList.remove('light', 'dark')
-      root.classList.add(resolvedTheme)
-    }
-
-    if (theme === 'system') {
-      const mql = window.matchMedia('(prefers-color-scheme: dark)')
-      applyTheme(mql.matches ? 'dark' : 'light')
-
-      const handler = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches ? 'dark' : 'light')
-      }
-      mql.addEventListener('change', handler)
-      return () => mql.removeEventListener('change', handler)
-    }
-
-    applyTheme(theme)
-  }, [theme])
-
-  const stableSetTheme = useCallback(
-    (newTheme: Theme) => {
-      localStorage.setItem(storageKey, newTheme)
-      setTheme(newTheme)
-    },
-    [storageKey]
-  )
+    root.classList.remove('light')
+    root.classList.add('dark')
+  }, [])
 
   const value = useMemo(
     () => ({
-      theme,
-      setTheme: stableSetTheme,
+      theme: 'dark' as const,
+      // Light theme has been removed; theme is fixed to dark.
+      setTheme: noop,
     }),
-    [theme, stableSetTheme]
+    []
   )
 
   return (

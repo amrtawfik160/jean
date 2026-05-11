@@ -34,7 +34,7 @@ import {
   Home,
   Terminal,
   Trash2,
-} from 'lucide-react'
+} from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

@@ -9,7 +9,7 @@ import {
   Settings,
   Terminal,
   Trash2,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   ContextMenu,
   ContextMenuContent,

@@ -17,6 +17,7 @@ import {
   CommandItem,
   CommandShortcut,
 } from '@/components/ui/command'
+import { Kbd } from '@/components/ui/kbd'
 
 interface ProjectCommand {
   id: string
@@ -161,7 +162,7 @@ export function CommandPalette() {
         value={search}
         onValueChange={setSearch}
       />
-      <CommandList className="max-h-[70dvh] sm:max-h-[300px]">
+      <CommandList className="max-h-[70dvh] sm:max-h-[360px]">
         <CommandEmpty>No results found.</CommandEmpty>
 
         {/* Projects group first (near top) */}
@@ -225,6 +226,17 @@ export function CommandPalette() {
           )
         )}
       </CommandList>
+      <div className="flex items-center justify-between gap-2 border-t border-border bg-popover/60 px-3 py-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <Kbd>↩</Kbd>
+          to run
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Kbd>⌘</Kbd>
+          <Kbd>/</Kbd>
+          for keyboard shortcuts
+        </span>
+      </div>
     </CommandDialog>
   )
 }

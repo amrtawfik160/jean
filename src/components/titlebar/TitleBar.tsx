@@ -17,7 +17,7 @@ import {
   PanelLeft,
   PanelLeftClose,
   Settings,
-} from 'lucide-react'
+} from '@/components/icons'
 import { usePreferences } from '@/services/preferences'
 import { formatShortcutDisplay, DEFAULT_KEYBINDINGS } from '@/types/keybindings'
 import { isNativeApp } from '@/lib/environment'
@@ -63,7 +63,7 @@ export function TitleBar({
       {...(native ? { 'data-tauri-drag-region': true } : {})}
       className={cn(
         'relative flex h-8 w-full shrink-0 items-center justify-between',
-        'bg-background/80 backdrop-blur-md md:px-2',
+        'bg-background/85 backdrop-blur-xl border-b border-border/40 md:px-2',
         native ? 'z-[60]' : 'z-50',
         className
       )}
@@ -86,7 +86,7 @@ export function TitleBar({
                 onClick={toggleLeftSidebar}
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-none text-foreground/70 hover:text-foreground"
+                className="h-6 w-6 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent/60"
               >
                 {leftSidebarVisible ? (
                   <PanelLeftClose className="size-3.5" />
@@ -108,7 +108,7 @@ export function TitleBar({
                 onClick={commandContext.openPreferences}
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-none text-foreground/70 hover:text-foreground"
+                className="h-6 w-6 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent/60"
               >
                 <Settings className="size-3.5" />
               </Button>
@@ -132,7 +132,7 @@ export function TitleBar({
                   }
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 rounded-none text-foreground/70 hover:text-foreground"
+                  className="h-6 w-6 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent/60"
                 >
                   <Github className="size-3.5" />
                 </Button>
@@ -146,7 +146,7 @@ export function TitleBar({
                 onClick={() => openExternal('https://jean.build/sponsorships/')}
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-none text-pink-500 hover:text-pink-400"
+                className="h-6 w-6 rounded-md text-pink-500 hover:text-pink-400 hover:bg-pink-500/10"
               >
                 <Heart className="size-3.5" />
               </Button>
@@ -178,7 +178,7 @@ export function TitleBar({
                 }
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-none text-foreground/70 hover:text-foreground"
+                className="h-6 w-6 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent/60"
               >
                 <Github className="h-3 w-3" />
               </Button>
@@ -216,7 +216,7 @@ function UpdateIndicator() {
           onClick={() =>
             window.dispatchEvent(new Event('install-pending-update'))
           }
-          className="mr-1.5 flex items-center gap-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.625rem] font-medium text-primary hover:bg-primary/25 transition-colors cursor-pointer"
+          className="mr-1.5 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[0.625rem] font-medium text-primary border border-primary/30 hover:bg-primary/25 transition-colors cursor-pointer"
         >
           <ArrowUpCircle className="size-3.5" />
           Update available

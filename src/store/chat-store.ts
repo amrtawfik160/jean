@@ -537,6 +537,7 @@ interface ChatUIState {
   enqueueMessage: (sessionId: string, message: QueuedMessage) => void
   dequeueMessage: (sessionId: string) => QueuedMessage | undefined
   removeQueuedMessage: (sessionId: string, messageId: string) => void
+  reorderQueuedMessages: (sessionId: string, orderedIds: string[]) => void
   clearQueue: (sessionId: string) => void
   getQueueLength: (sessionId: string) => number
   getQueuedMessages: (sessionId: string) => QueuedMessage[]
@@ -2339,6 +2340,52 @@ export const useChatStore = create<ChatUIState>()(
           }),
           undefined,
           'removeQueuedMessage'
+        ),
+
+      reorderQueuedMessages: (sessionId, orderedIds) =>
+        set(
+          state => {
+            const current = state.messageQueues[sessionId] ?? []
+            if (current.length === 0) return state
+
+            const byId = new Map(current.map(m => [m.id, m]))
+            const reordered: QueuedMessage[] = []
+            for (const id of orderedIds) {
+              const msg = byId.get(id)
+              if (msg) {
+                reordered.push(msg)
+                byId.delete(id)
+              }
+            }
+            // Append any messages whose ids weren't supplied (defensive)
+            for (const msg of current) {
+              if (byId.has(msg.id)) {
+                reordered.push(msg)
+                byId.delete(msg.id)
+              }
+            }
+
+            // Skip update if order is unchanged
+            let changed = reordered.length !== current.length
+            if (!changed) {
+              for (let i = 0; i < reordered.length; i++) {
+                if (reordered[i]?.id !== current[i]?.id) {
+                  changed = true
+                  break
+                }
+              }
+            }
+            if (!changed) return state
+
+            return {
+              messageQueues: {
+                ...state.messageQueues,
+                [sessionId]: reordered,
+              },
+            }
+          },
+          undefined,
+          'reorderQueuedMessages'
         ),
 
       clearQueue: sessionId =>

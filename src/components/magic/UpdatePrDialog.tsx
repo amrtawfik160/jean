@@ -10,7 +10,7 @@ import {
   Loader2,
   RefreshCw,
   Upload,
-} from 'lucide-react'
+} from '@/components/icons'
 import { toast } from 'sonner'
 import { openExternal } from '@/lib/platform'
 import { copyToClipboard } from '@/lib/clipboard'

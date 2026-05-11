@@ -1,4 +1,4 @@
-import { Maximize, Minus, Minimize, Square, X } from 'lucide-react'
+import { Maximize, Minus, Minimize, Square, X } from '@/components/icons'
 
 import type { AppCommand } from './types'
 

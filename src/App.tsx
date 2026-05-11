@@ -25,6 +25,7 @@ import { cleanupOldFiles } from './lib/recovery'
 import './App.css'
 import MainWindow from './components/layout/MainWindow'
 import { ThemeProvider } from './components/ThemeProvider'
+import { MotionProvider } from './components/MotionProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useClaudeCliStatus, useClaudeCliAuth } from './services/claude-cli'
 import { useCodexCliStatus, useCodexCliAuth } from './services/codex-cli'
@@ -1034,11 +1035,13 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <MainWindow />
-        {!isNativeApp() && !isPreloading && !wsDataReady && (
-          <WsReconnectOverlay />
-        )}
-        {!isNativeApp() && <WsAuthErrorOverlay />}
+        <MotionProvider>
+          <MainWindow />
+          {!isNativeApp() && !isPreloading && !wsDataReady && (
+            <WsReconnectOverlay />
+          )}
+          {!isNativeApp() && <WsAuthErrorOverlay />}
+        </MotionProvider>
       </ThemeProvider>
     </ErrorBoundary>
   )

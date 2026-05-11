@@ -2316,6 +2316,26 @@ export function persistRemoveQueued(
 }
 
 /**
+ * Persist a reordered queue to the backend for cross-client sync.
+ * Fire-and-forget — Zustand is the optimistic source of truth.
+ */
+export function persistReorderQueue(
+  worktreeId: string,
+  worktreePath: string,
+  sessionId: string,
+  orderedIds: string[]
+): void {
+  invoke('reorder_message_queue', {
+    worktreeId,
+    worktreePath,
+    sessionId,
+    orderedIds,
+  }).catch(err => {
+    logger.error('Failed to persist reorder queue', { err, sessionId })
+  })
+}
+
+/**
  * Persist clearing the entire queue for a session.
  */
 export function persistClearQueue(

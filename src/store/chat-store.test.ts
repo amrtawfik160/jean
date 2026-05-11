@@ -679,6 +679,69 @@ describe('ChatStore', () => {
 
       expect(getQueueLength('session-1')).toBe(0)
     })
+
+    it('reorders queued messages by supplied id list', () => {
+      const { enqueueMessage, reorderQueuedMessages, getQueuedMessages } =
+        useChatStore.getState()
+
+      const msg1 = createMockMessage('msg-1', 'First')
+      const msg2 = createMockMessage('msg-2', 'Second')
+      const msg3 = createMockMessage('msg-3', 'Third')
+
+      enqueueMessage('session-1', msg1)
+      enqueueMessage('session-1', msg2)
+      enqueueMessage('session-1', msg3)
+
+      reorderQueuedMessages('session-1', ['msg-3', 'msg-1', 'msg-2'])
+
+      const messages = getQueuedMessages('session-1')
+      expect(messages.map(m => m.id)).toEqual(['msg-3', 'msg-1', 'msg-2'])
+    })
+
+    it('appends ids missing from reorder list at the end', () => {
+      const { enqueueMessage, reorderQueuedMessages, getQueuedMessages } =
+        useChatStore.getState()
+
+      const msg1 = createMockMessage('msg-1', 'First')
+      const msg2 = createMockMessage('msg-2', 'Second')
+      const msg3 = createMockMessage('msg-3', 'Third')
+
+      enqueueMessage('session-1', msg1)
+      enqueueMessage('session-1', msg2)
+      enqueueMessage('session-1', msg3)
+
+      // Caller only supplied a partial id list
+      reorderQueuedMessages('session-1', ['msg-3'])
+
+      const messages = getQueuedMessages('session-1')
+      expect(messages.map(m => m.id)).toEqual(['msg-3', 'msg-1', 'msg-2'])
+    })
+
+    it('is a no-op when order is unchanged', () => {
+      const { enqueueMessage, reorderQueuedMessages, getQueuedMessages } =
+        useChatStore.getState()
+
+      const msg1 = createMockMessage('msg-1', 'First')
+      const msg2 = createMockMessage('msg-2', 'Second')
+
+      enqueueMessage('session-1', msg1)
+      enqueueMessage('session-1', msg2)
+
+      const before = getQueuedMessages('session-1')
+      reorderQueuedMessages('session-1', ['msg-1', 'msg-2'])
+      const after = useChatStore.getState().getQueuedMessages('session-1')
+
+      // Reference equality preserved when nothing changed
+      expect(after).toBe(before)
+    })
+
+    it('does nothing when queue is empty', () => {
+      const { reorderQueuedMessages, getQueueLength } = useChatStore.getState()
+
+      reorderQueuedMessages('session-empty', ['msg-1', 'msg-2'])
+
+      expect(getQueueLength('session-empty')).toBe(0)
+    })
   })
 
   describe('permission approvals', () => {

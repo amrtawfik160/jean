@@ -48,7 +48,14 @@ function TooltipContent({
         sideOffset={sideOffset}
         side={side}
         className={cn(
-          'bg-popover text-popover-foreground border border-border animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-[80] w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance',
+          'bg-popover/95 text-popover-foreground border border-border/70',
+          'shadow-[0_4px_12px_-2px_oklch(0_0_0/0.5),0_0_0_1px_oklch(0.27_0.01_270/0.4)]',
+          'rounded-md px-2.5 py-1 text-xs text-balance',
+          'backdrop-blur-md',
+          'animate-in fade-in-0 zoom-in-95 duration-150',
+          'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
+          'data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1',
+          'z-[80] w-fit origin-(--radix-tooltip-content-transform-origin)',
           className
         )}
         {...props}

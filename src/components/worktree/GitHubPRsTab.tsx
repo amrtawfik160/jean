@@ -1,4 +1,4 @@
-import { Loader2, Search, RefreshCw, AlertCircle } from 'lucide-react'
+import { Loader2, Search, RefreshCw, AlertCircle } from '@/components/icons'
 import { isGhAuthError } from '@/services/github'
 import { GhAuthError } from '@/components/shared/GhAuthError'
 import { ScrollArea } from '@/components/ui/scroll-area'

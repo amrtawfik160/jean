@@ -9,7 +9,7 @@ import {
   RefreshCw,
   RotateCcw,
   X,
-} from 'lucide-react'
+} from '@/components/icons'
 import { convertFileSrc } from '@/lib/transport'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

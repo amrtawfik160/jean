@@ -9,7 +9,7 @@ import {
   ShieldAlert,
   Wand2,
   Eye,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   Tooltip,
   TooltipTrigger,

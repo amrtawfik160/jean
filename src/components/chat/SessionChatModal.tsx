@@ -22,7 +22,7 @@ import {
   Play,
   Plus,
   Trash2,
-} from 'lucide-react'
+} from '@/components/icons'
 import { ModalCloseButton } from '@/components/ui/modal-close-button'
 import { cn } from '@/lib/utils'
 import { dismissibleToast } from '@/lib/dismissible-toast'

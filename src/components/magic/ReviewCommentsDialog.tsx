@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   MessageCircle,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   Dialog,
   DialogContent,

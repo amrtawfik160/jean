@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* Border radius */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  /* Border radius — tightened to Linear-style 6px */
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
@@ -43,98 +43,145 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
 }
 
+/*
+ * Dark-only Linear-inspired palette.
+ * Light theme has been removed; the .dark class is always applied to <html>.
+ * :root holds the canonical values; .dark mirrors them so dark: variants
+ * continue to resolve identically.
+ */
 :root {
   /* Font families */
-  --font-family-sans: 'Inter', -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+  --font-family-sans:
+    'Inter', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
   --font-family-mono:
     'JetBrains Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
 
   /* Font sizes (defaults, overridden by JS based on preferences) */
-  --ui-font-size: 16px;
-  --ui-line-height: 1.6;
-  --chat-font-size: 16px;
-  --chat-line-height: 1.5;
-  /* Chat font family (can be monospace or sans-serif) */
+  --ui-font-size: 14px;
+  --ui-line-height: 1.5;
+  --chat-font-size: 14px;
+  --chat-line-height: 1.55;
   --font-family-chat:
     'JetBrains Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
 
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --warning: #fcd452;
-  --success: #22c55e;
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Linear-style 6px radius */
+  --radius: 0.5rem;
+
+  /* Linear-inspired dark palette */
+  --background: oklch(0.16 0.005 270);
+  --foreground: oklch(0.985 0.002 270);
+
+  --surface-1: oklch(0.18 0.006 270);
+  --surface-2: oklch(0.21 0.007 270);
+  --surface-3: oklch(0.24 0.008 270);
+
+  --card: oklch(0.18 0.006 270);
+  --card-foreground: oklch(0.985 0.002 270);
+  --popover: oklch(0.2 0.007 270);
+  --popover-foreground: oklch(0.985 0.002 270);
+
+  --primary: oklch(0.66 0.19 268); /* Linear indigo ~ #5e6ad2 */
+  --primary-foreground: oklch(0.985 0.002 270);
+
+  --secondary: oklch(0.22 0.008 270);
+  --secondary-foreground: oklch(0.985 0.002 270);
+
+  --muted: oklch(0.22 0.008 270);
+  --muted-foreground: oklch(0.62 0.012 270);
+
+  --accent: oklch(0.26 0.009 270);
+  --accent-foreground: oklch(0.985 0.002 270);
+
+  --destructive: oklch(0.62 0.22 24);
+  --warning: oklch(0.78 0.16 80);
+  --success: oklch(0.7 0.15 155);
+
+  --border: oklch(0.27 0.01 270);
+  --input: oklch(0.27 0.01 270);
+  --ring: oklch(0.66 0.19 268 / 0.6);
+
+  --chart-1: oklch(0.66 0.19 268);
+  --chart-2: oklch(0.7 0.15 155);
+  --chart-3: oklch(0.78 0.16 80);
+  --chart-4: oklch(0.62 0.22 24);
+  --chart-5: oklch(0.7 0.15 200);
+
+  --sidebar: oklch(0.15 0.005 270);
+  --sidebar-foreground: oklch(0.92 0.005 270);
+  --sidebar-primary: oklch(0.66 0.19 268);
+  --sidebar-primary-foreground: oklch(0.985 0.002 270);
+  --sidebar-accent: oklch(0.24 0.009 270);
+  --sidebar-accent-foreground: oklch(0.985 0.002 270);
+  --sidebar-border: oklch(0.24 0.009 270);
+  --sidebar-ring: oklch(0.66 0.19 268 / 0.6);
+
+  /* Soft layered shadows */
+  --shadow-elev-1: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-elev-2:
+    0 4px 8px oklch(0 0 0 / 0.32), 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-elev-3:
+    0 12px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0 0 0 / 0.3);
+
+  /* Motion tokens */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 280ms;
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
 }
 
+/* .dark mirrors :root so existing dark: variants keep behaving */
 .dark {
-  /* Coolify-inspired coolgray color scheme */
-  --background: #101010; /* base */
-  --foreground: #fafafa; /* light text */
-  --card: #181818; /* coolgray-100 */
-  --card-foreground: #fafafa;
-  --popover: #181818; /* coolgray-100 */
-  --popover-foreground: #fafafa;
-  --primary: #fcd452; /* yellow accent */
-  --primary-foreground: #101010; /* dark text on yellow */
-  --secondary: #202020; /* coolgray-200 */
-  --secondary-foreground: #fafafa;
-  --muted: #242424; /* coolgray-300 */
-  --muted-foreground: #a1a1a1; /* gray text */
-  --accent: #282828; /* coolgray-400 */
-  --accent-foreground: #fafafa;
-  --destructive: #dc2626; /* error red */
-  --warning: #fcd452; /* yellow */
-  --success: #22c55e; /* green */
-  --border: #323232; /* coolgray-500 */
-  --input: #323232; /* coolgray-500 */
-  --ring: #fcd452; /* yellow focus ring */
-  --chart-1: #fcd452;
-  --chart-2: #22c55e;
-  --chart-3: #6b16ed;
-  --chart-4: #dc2626;
-  --chart-5: #3b82f6;
-  --sidebar: #101010; /* matches background */
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #fcd452; /* yellow */
-  --sidebar-primary-foreground: #101010;
-  --sidebar-accent: #282828; /* coolgray-400 */
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #323232; /* coolgray-500 */
-  --sidebar-ring: #fcd452;
+  --background: oklch(0.16 0.005 270);
+  --foreground: oklch(0.985 0.002 270);
+
+  --surface-1: oklch(0.18 0.006 270);
+  --surface-2: oklch(0.21 0.007 270);
+  --surface-3: oklch(0.24 0.008 270);
+
+  --card: oklch(0.18 0.006 270);
+  --card-foreground: oklch(0.985 0.002 270);
+  --popover: oklch(0.2 0.007 270);
+  --popover-foreground: oklch(0.985 0.002 270);
+
+  --primary: oklch(0.66 0.19 268);
+  --primary-foreground: oklch(0.985 0.002 270);
+
+  --secondary: oklch(0.22 0.008 270);
+  --secondary-foreground: oklch(0.985 0.002 270);
+
+  --muted: oklch(0.22 0.008 270);
+  --muted-foreground: oklch(0.62 0.012 270);
+
+  --accent: oklch(0.26 0.009 270);
+  --accent-foreground: oklch(0.985 0.002 270);
+
+  --destructive: oklch(0.62 0.22 24);
+  --warning: oklch(0.78 0.16 80);
+  --success: oklch(0.7 0.15 155);
+
+  --border: oklch(0.27 0.01 270);
+  --input: oklch(0.27 0.01 270);
+  --ring: oklch(0.66 0.19 268 / 0.6);
+
+  --sidebar: oklch(0.15 0.005 270);
+  --sidebar-foreground: oklch(0.92 0.005 270);
+  --sidebar-primary: oklch(0.66 0.19 268);
+  --sidebar-primary-foreground: oklch(0.985 0.002 270);
+  --sidebar-accent: oklch(0.24 0.009 270);
+  --sidebar-accent-foreground: oklch(0.985 0.002 270);
+  --sidebar-border: oklch(0.24 0.009 270);
+  --sidebar-ring: oklch(0.66 0.19 268 / 0.6);
 }
 
 /* Wave animation for vibing indicator */
@@ -184,9 +231,9 @@
 
 /* Square spinner: rotating conic-gradient border */
 .square-spinner {
-  --spinner-color: oklch(0.795 0.184 86.047); /* yellow-500 */
+  --spinner-color: var(--primary);
   position: relative;
-  background: color-mix(in srgb, var(--spinner-color) 10%, transparent);
+  background: color-mix(in srgb, var(--spinner-color) 14%, transparent);
   border-radius: 2px;
 }
 .square-spinner::before {
@@ -221,20 +268,17 @@
   inherits: false;
 }
 
-/* Failed terminal: static red square (no spinning) */
 .square-spinner-failed {
-  --spinner-color: oklch(0.637 0.237 25.331); /* red-500 */
+  --spinner-color: var(--destructive);
   position: relative;
   background: color-mix(in srgb, var(--spinner-color) 25%, transparent);
   border: 1px solid var(--spinner-color);
   border-radius: 2px;
 }
 
-/* Animated border for session cards in running state.
-   Uses transform:rotate on an oversized conic-gradient pseudo-element
-   (WebKit doesn't support @property animation needed for the from-angle approach). */
+/* Animated border for session cards in running state. */
 .card-border-spin {
-  --card-spin-color: oklch(0.795 0.184 86.047); /* yellow-500 */
+  --card-spin-color: var(--primary);
   position: relative;
   overflow: hidden;
   border-radius: calc(var(--radius) - 2px);
@@ -314,16 +358,13 @@
 }
 
 .animate-collapsible-down {
-  animation: collapsible-down 150ms ease-out;
+  animation: collapsible-down 150ms var(--ease-out-quint);
 }
 
 .animate-collapsible-up {
-  animation: collapsible-up 150ms ease-out;
+  animation: collapsible-up 150ms var(--ease-out-quint);
 }
 
-/* Force GPU compositing layer on scroll viewport to prevent WebKit blank-screen bug.
-   Without this, rapid programmatic scrollTop changes during CSS collapse animations
-   can leave the viewport visually blank until a user scroll gesture forces a repaint. */
 .will-change-scroll {
   will-change: scroll-position;
   -webkit-transform: translateZ(0);
@@ -360,10 +401,10 @@
 @keyframes icon-glow {
   0%,
   100% {
-    filter: drop-shadow(0 0 2px rgba(250, 204, 21, 0.5));
+    filter: drop-shadow(0 0 2px oklch(0.66 0.19 268 / 0.5));
   }
   50% {
-    filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.8));
+    filter: drop-shadow(0 0 5px oklch(0.66 0.19 268 / 0.8));
   }
 }
 
@@ -402,7 +443,6 @@
     isolation: isolate;
   }
 
-  /* Desktop-only styles — applied when body has .native-app class */
   body.native-app {
     user-select: none;
     -webkit-user-select: none;
@@ -416,7 +456,6 @@
     cursor: default;
   }
 
-  /* Use app background color so native titlebar overlay area blends in */
   html:has(body.native-app) {
     background: hsl(var(--background));
   }
@@ -425,7 +464,6 @@
     color: inherit;
   }
 
-  /* Allow text selection in specific areas */
   input,
   textarea,
   [contenteditable='true'],
@@ -438,51 +476,41 @@
     cursor: text !important;
   }
 
-  /* Links should always have pointer cursor */
   a,
   .select-text a,
   .select-text a * {
     cursor: pointer !important;
   }
 
-  /* Utility class for when pointer cursor is explicitly needed */
   .cursor-pointer,
   .cursor-pointer * {
     cursor: pointer !important;
   }
 }
 
-/* Ensure toast notifications remain clickable above Radix modal overlays.
-   Radix Dialog (modal mode) sets pointer-events:none on <body>;
-   Sonner already renders at z-index:999999999, we just restore pointer events. */
+/* Toast: keep clickable above modal overlays */
 [data-sonner-toaster],
 [data-sonner-toaster] [data-sonner-toast] {
   pointer-events: auto !important;
 }
 
-/* Make text column grow so action/cancel buttons align to the right edge
-   regardless of title length. Sonner ships [data-content] with flex-column
-   only; without flex:1 the buttons sit flush to text and shift per-toast. */
 [data-sonner-toaster] [data-sonner-toast] [data-content] {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-/* Ensures the title bar window controls (minimize, maximize, close) remain clickable
-   above Radix modal overlays (e.g. onboarding dialog). The title bar uses
-   data-tauri-drag-region and z-[60] to sit above the z-50 dialog overlay. */
 [data-tauri-drag-region] {
   pointer-events: auto !important;
 }
 
-/* Font overrides - outside @layer to ensure higher specificity */
+/* Font overrides */
 body {
   font-family: var(--font-family-sans) !important;
   font-size: var(--ui-font-size) !important;
   line-height: var(--ui-line-height) !important;
 }
 
-/* Text size overrides - scale relative to UI font preference */
+/* Tightened type scale (Linear runs ~13–14px base) */
 .text-xs {
   font-size: calc(var(--ui-font-size) * 0.85) !important;
 }
@@ -499,29 +527,25 @@ body {
   font-size: calc(var(--ui-font-size) * 1.25) !important;
 }
 .text-2xl {
-  font-size: calc(var(--ui-font-size) * 1.5) !important;
+  font-size: calc(var(--ui-font-size) * 1.45) !important;
 }
 
-/* Monospace elements (code blocks inside markdown, etc.) - use fixed mono font */
 code,
 pre,
 kbd {
   font-family: var(--font-family-mono) !important;
 }
 
-/* UI text styling - font-sans uses UI font preference */
 .font-sans {
   font-family: var(--font-family-sans) !important;
 }
 
-/* Chat text styling - font-mono in chat context uses chat font preference */
 .font-mono {
   font-family: var(--font-family-chat) !important;
   font-size: var(--chat-font-size) !important;
   line-height: var(--chat-line-height) !important;
 }
 
-/* Inside chat context (.font-mono), text sizes scale relative to chat font */
 .font-mono .text-xs {
   font-size: calc(var(--chat-font-size) * 0.85) !important;
 }
@@ -538,10 +562,9 @@ kbd {
   font-size: calc(var(--chat-font-size) * 1.25) !important;
 }
 .font-mono .text-2xl {
-  font-size: calc(var(--chat-font-size) * 1.5) !important;
+  font-size: calc(var(--chat-font-size) * 1.45) !important;
 }
 
-/* Hidden scrollbar for horizontally scrollable tab bars */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -549,7 +572,7 @@ kbd {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-/* Settings search highlight flash */
+
 @keyframes settings-highlight-flash {
   0%,
   100% {
@@ -557,10 +580,10 @@ kbd {
     box-shadow: none;
   }
   15% {
-    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+    background-color: color-mix(in srgb, var(--primary) 14%, transparent);
     box-shadow:
-      0 0 0 8px color-mix(in srgb, var(--primary) 12%, transparent),
-      0 0 0 10px color-mix(in srgb, var(--primary) 25%, transparent);
+      0 0 0 8px color-mix(in srgb, var(--primary) 14%, transparent),
+      0 0 0 10px color-mix(in srgb, var(--primary) 28%, transparent);
   }
 }
 .settings-search-highlight {
@@ -568,31 +591,23 @@ kbd {
   border-radius: calc(var(--radius) - 2px);
 }
 
-/* Number input spinner — invert arrows in dark mode so they're visible */
+/* Number input spinner — invert in dark mode */
 .dark input[type='number']::-webkit-inner-spin-button,
 .dark input[type='number']::-webkit-outer-spin-button {
   filter: invert(1);
 }
 
-/* Chat search highlights (CSS Custom Highlight API) */
 ::highlight(chat-search) {
-  background-color: rgba(250, 204, 21, 0.4);
+  background-color: oklch(0.66 0.19 268 / 0.32);
 }
 ::highlight(chat-search-active) {
-  background-color: rgba(251, 146, 60, 0.75);
-}
-.dark ::highlight(chat-search) {
-  background-color: rgba(250, 204, 21, 0.3);
-}
-.dark ::highlight(chat-search-active) {
-  background-color: rgba(251, 146, 60, 0.6);
+  background-color: oklch(0.78 0.16 80 / 0.55);
 }
 
-/* Global custom scrollbar — applies to every scrollable element so Windows
-   WebView2 doesn't render its native gray scrollbar. */
+/* Linear-style scrollbars: thin, low-contrast, fade-in on hover */
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
@@ -622,4 +637,16 @@ kbd {
 .xterm .composition-view {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
+}
+
+/* Honor user reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

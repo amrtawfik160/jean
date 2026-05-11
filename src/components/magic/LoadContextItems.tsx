@@ -11,7 +11,7 @@ import {
   ShieldAlert,
   Trash2,
   X,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   Tooltip,
   TooltipTrigger,

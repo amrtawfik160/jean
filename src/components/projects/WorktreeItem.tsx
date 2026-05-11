@@ -4,7 +4,7 @@ import type {
   IndicatorStatus,
   IndicatorVariant,
 } from '@/components/ui/status-indicator'
-import { ArrowDown, ArrowUp, ChevronDown, GitBranch } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, GitBranch } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { dismissibleToast } from '@/lib/dismissible-toast'
 import { isBaseSession, type Worktree } from '@/types/projects'
@@ -526,11 +526,12 @@ export function WorktreeItem({
       >
         <div
           className={cn(
-            'group relative flex cursor-pointer items-center gap-1.5 py-1.5 pr-2 overflow-hidden transition-colors duration-150',
-            isNarrowSidebar ? 'pl-4' : 'pl-7',
+            'group relative mx-1 my-0.5 flex cursor-pointer items-center gap-1.5 h-7 pr-2 rounded-md overflow-hidden',
+            'transition-[background-color,color] duration-150',
+            isNarrowSidebar ? 'pl-3' : 'pl-6',
             isSelected
-              ? 'bg-primary/10 text-foreground before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r before:bg-primary'
+              : 'text-muted-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/60'
           )}
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}

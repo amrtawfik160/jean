@@ -14,7 +14,7 @@ import {
   FileCode,
   Loader2,
   Wrench,
-} from 'lucide-react'
+} from '@/components/icons'
 import { ModalCloseButton } from '@/components/ui/modal-close-button'
 import type { ReviewFinding, ReviewResponse } from '@/types/projects'
 import {

@@ -82,10 +82,10 @@ function Slider({
         )}
         {...props}
       >
-        <SliderPrimitive.Track className="bg-muted relative h-1.5 w-full grow overflow-hidden rounded-full">
-          <SliderPrimitive.Range className="bg-primary absolute h-full" />
+        <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-surface-3">
+          <SliderPrimitive.Range className="absolute h-full bg-primary" />
         </SliderPrimitive.Track>
-        <SliderPrimitive.Thumb className="border-primary/50 bg-background focus-visible:ring-ring/50 block size-4 rounded-full border shadow-sm transition-colors focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none" />
+        <SliderPrimitive.Thumb className="block size-4 rounded-full bg-foreground border-2 border-primary shadow-[0_2px_4px_oklch(0_0_0/0.4)] transition-[box-shadow,transform] duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none disabled:pointer-events-none" />
       </SliderPrimitive.Root>
       <div className="relative flex w-full justify-between px-[7px]">
         {ticks.map(tick => (

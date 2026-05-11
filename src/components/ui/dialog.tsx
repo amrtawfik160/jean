@@ -1,6 +1,6 @@
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { XIcon } from 'lucide-react'
+import { XIcon } from '@/components/icons'
 
 import { cn } from '@/lib/utils'
 
@@ -36,7 +36,10 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     data-slot="dialog-overlay"
     className={cn(
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[70] bg-black/50',
+      'fixed inset-0 z-[70] bg-background/70 backdrop-blur-md',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out',
+      'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'duration-150',
       className
     )}
     {...props}
@@ -69,21 +72,20 @@ const DialogContent = React.forwardRef<
         ref={ref}
         data-slot="dialog-content"
         className={cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[70] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg',
+          'fixed top-[50%] left-[50%] z-[70] grid w-full max-w-[calc(100%-2rem)] sm:max-w-lg',
+          'translate-x-[-50%] translate-y-[-50%] gap-4 p-6',
+          'rounded-xl border border-border/70 bg-popover',
+          'shadow-[0_20px_60px_-15px_oklch(0_0_0/0.6),0_0_0_1px_oklch(0.27_0.01_270/0.6)]',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out',
+          'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+          'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+          'duration-200',
           className
         )}
         onEscapeKeyDown={e => {
           // Stop ESC from reaching window-level handlers (e.g. SessionChatModal)
           // Radix listens on document, so stopPropagation prevents bubbling to window
           e.stopPropagation()
-          console.log('[ESC-DEBUG] DialogContent onEscapeKeyDown', {
-            preventClose,
-            hasPopover: !!document.querySelector(
-              '[data-slot="popover-content"]'
-            ),
-            hasSelect: !!document.querySelector('[data-slot="select-content"]'),
-            hasCustomHandler: !!onEscapeKeyDownProp,
-          })
           if (preventClose) {
             e.preventDefault()
             return
@@ -94,7 +96,6 @@ const DialogContent = React.forwardRef<
               '[data-slot="popover-content"], [data-slot="select-content"]'
             )
           ) {
-            console.log('[ESC-DEBUG] DialogContent: BLOCKED (child popup open)')
             e.preventDefault()
             return
           }
@@ -114,7 +115,14 @@ const DialogContent = React.forwardRef<
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring absolute top-4 right-5 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className={cn(
+              'absolute top-3.5 right-4 inline-flex size-7 items-center justify-center',
+              'rounded-md text-muted-foreground transition-colors duration-150',
+              'hover:bg-accent hover:text-accent-foreground',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              'disabled:pointer-events-none',
+              "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            )}
           >
             <XIcon />
             <span className="sr-only">Close</span>
@@ -130,7 +138,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn('flex flex-col gap-2 text-center sm:text-left', className)}
+      className={cn('flex flex-col gap-1.5 text-center sm:text-left', className)}
       {...props}
     />
   )
@@ -156,7 +164,10 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     data-slot="dialog-title"
-    className={cn('text-lg leading-none font-semibold', className)}
+    className={cn(
+      'text-base leading-tight font-semibold tracking-tight',
+      className
+    )}
     {...props}
   />
 ))

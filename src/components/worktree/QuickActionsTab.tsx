@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GitBranch, Loader2, Plus, Settings } from 'lucide-react'
+import { GitBranch, Loader2, Plus, Settings } from '@/components/icons'
 import {
   Tooltip,
   TooltipTrigger,

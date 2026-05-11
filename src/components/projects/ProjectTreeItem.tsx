@@ -5,7 +5,7 @@ import {
   ChevronDown,
   MoreHorizontal,
   Plus,
-} from 'lucide-react'
+} from '@/components/icons'
 import { convertFileSrc } from '@/lib/transport'
 import { cn } from '@/lib/utils'
 import { dismissibleToast } from '@/lib/dismissible-toast'
@@ -160,10 +160,11 @@ export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
         {/* Project Row */}
         <div
           className={cn(
-            'group relative flex cursor-pointer items-center gap-1.5 px-2 py-1.5 overflow-hidden transition-colors duration-150',
+            'group relative mx-1 my-0.5 flex cursor-pointer items-center gap-1.5 rounded-md px-2 h-7 overflow-hidden',
+            'transition-[background-color,color] duration-150',
             isSelected
-              ? 'bg-primary/10 text-foreground before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary'
-              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r before:bg-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
           )}
           onClick={handleClick}
         >
@@ -255,7 +256,7 @@ export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
             </div>
           )}
 
-          {/* Settings */}
+          {/* Settings — hover-reveal */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -263,7 +264,13 @@ export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
                   e.stopPropagation()
                   openProjectSettings(project.id)
                 }}
-                className="flex size-4 shrink-0 items-center justify-center rounded opacity-50 hover:bg-accent-foreground/10 hover:opacity-100"
+                className={cn(
+                  'flex size-5 shrink-0 items-center justify-center rounded-sm transition-[opacity,background-color]',
+                  'hover:bg-sidebar-accent-foreground/10',
+                  isMobile
+                    ? 'opacity-60'
+                    : 'opacity-0 group-hover:opacity-70 hover:!opacity-100'
+                )}
               >
                 <MoreHorizontal className="size-3.5" />
               </button>
@@ -271,12 +278,18 @@ export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
             <TooltipContent>Project settings</TooltipContent>
           </Tooltip>
 
-          {/* Add Worktree */}
+          {/* Add Worktree — hover-reveal */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={handleAddWorktree}
-                className="flex size-4 shrink-0 items-center justify-center rounded opacity-50 hover:bg-accent-foreground/10 hover:opacity-100"
+                className={cn(
+                  'flex size-5 shrink-0 items-center justify-center rounded-sm transition-[opacity,background-color]',
+                  'hover:bg-sidebar-accent-foreground/10',
+                  isMobile
+                    ? 'opacity-60'
+                    : 'opacity-0 group-hover:opacity-70 hover:!opacity-100'
+                )}
               >
                 <Plus className="size-3.5" />
               </button>

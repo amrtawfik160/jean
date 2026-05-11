@@ -7,7 +7,7 @@ import {
   CirclePause,
   HelpCircle,
   FileText,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   Popover,
   PopoverTrigger,

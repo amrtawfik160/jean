@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { Zap } from 'lucide-react'
+import { Zap } from '@/components/icons'
 import { dismissibleToast } from '@/lib/dismissible-toast'
 import { useUIStore } from '@/store/ui-store'
 import {

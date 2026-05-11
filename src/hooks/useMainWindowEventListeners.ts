@@ -475,6 +475,46 @@ function executeKeybindingAction(
     case 'open_usage_dropdown':
       window.dispatchEvent(new CustomEvent('toggle-usage-menu'))
       break
+    case 'toggle_right_sidebar': {
+      logger.debug('Keybinding: toggle_right_sidebar')
+      const { selectedWorktreeId } = useProjectsStore.getState()
+      if (!selectedWorktreeId) break
+      const { rightSidebarVisible, setRightSidebarVisible } =
+        useUIStore.getState()
+      setRightSidebarVisible(!rightSidebarVisible)
+      break
+    }
+    case 'open_shortcut_cheatsheet': {
+      logger.debug('Keybinding: open_shortcut_cheatsheet')
+      window.dispatchEvent(new CustomEvent('toggle-shortcut-cheatsheet'))
+      break
+    }
+    case 'copy_session_link': {
+      logger.debug('Keybinding: copy_session_link')
+      window.dispatchEvent(new CustomEvent('copy-session-link'))
+      break
+    }
+    case 'focus_next_pane': {
+      logger.debug('Keybinding: focus_next_pane')
+      window.dispatchEvent(
+        new CustomEvent('cycle-pane-focus', { detail: { direction: 'next' } })
+      )
+      break
+    }
+    case 'focus_prev_pane': {
+      logger.debug('Keybinding: focus_prev_pane')
+      window.dispatchEvent(
+        new CustomEvent('cycle-pane-focus', {
+          detail: { direction: 'previous' },
+        })
+      )
+      break
+    }
+    case 'quick_new_chat': {
+      logger.debug('Keybinding: quick_new_chat')
+      window.dispatchEvent(new CustomEvent('create-new-session'))
+      break
+    }
     case 'toggle_session_label': {
       logger.debug('Keybinding: toggle_session_label')
       // Works when a session is active (modal open or in session view) or on project canvas

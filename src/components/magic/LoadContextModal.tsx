@@ -8,9 +8,9 @@ import {
   GitPullRequest,
   Shield,
   ShieldAlert,
-} from 'lucide-react'
+} from '@/components/icons'
 import { LinearIcon } from '@/components/icons/LinearIcon'
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from '@/components/icons'
 import {
   Dialog,
   DialogContent,

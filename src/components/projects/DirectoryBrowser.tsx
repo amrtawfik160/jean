@@ -6,7 +6,7 @@ import {
   Loader2,
   EyeOff,
   Check,
-} from 'lucide-react'
+} from '@/components/icons'
 import { toast } from 'sonner'
 import { invoke } from '@/lib/transport'
 import type { BrowseDirectoryResult, DirEntry } from '@/types/projects'

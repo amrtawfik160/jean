@@ -1,4 +1,4 @@
-import type { LucideProps } from 'lucide-react'
+import type { LucideProps } from '@/components/icons'
 import { forwardRef } from 'react'
 
 export const LinearIcon = forwardRef<SVGSVGElement, LucideProps>(

@@ -15,7 +15,7 @@ import {
   Loader2,
   AlertCircle,
   Wand2,
-} from 'lucide-react'
+} from '@/components/icons'
 import { toast } from 'sonner'
 import { getModifierSymbol } from '@/lib/platform'
 import {

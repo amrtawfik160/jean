@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { isNativeApp } from '@/lib/environment'
-import { Loader2, Globe, FolderOpen, AlertCircle } from 'lucide-react'
+import { Loader2, Globe, FolderOpen, AlertCircle } from '@/components/icons'
 import {
   Dialog,
   DialogContent,

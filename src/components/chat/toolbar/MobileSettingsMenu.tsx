@@ -17,7 +17,7 @@ import {
   ShieldAlert,
   Sparkles,
   Terminal,
-} from 'lucide-react'
+} from '@/components/icons'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {

@@ -6,7 +6,7 @@ import {
   Menu,
   Plug,
   Plus,
-} from 'lucide-react'
+} from '@/components/icons'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -130,7 +130,9 @@ export function DockBurgerButton({
               type="button"
               aria-label={`Menu (${menuShortcut})`}
               className={cn(
-                'flex h-8 items-center gap-1 px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground',
+                'flex h-7 items-center justify-center gap-1 px-2 rounded-md text-xs font-medium text-muted-foreground',
+                'transition-[background-color,color,transform] duration-150 active:scale-[0.97]',
+                'hover:bg-accent hover:text-foreground',
                 className
               )}
             >

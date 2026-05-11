@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Check, ChevronsUpDown, RotateCcw } from 'lucide-react'
+import { Check, ChevronsUpDown, RotateCcw } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { FileIcon, FolderIcon, Loader2 } from 'lucide-react'
+import { FileIcon, FolderIcon, Loader2 } from '@/components/icons'
 import { invoke } from '@/lib/transport'
 import {
   Dialog,

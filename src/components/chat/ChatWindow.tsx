@@ -26,7 +26,7 @@ import {
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { invoke, listen } from '@/lib/transport'
 import { hydrateRunningSnapshot } from '@/lib/hydrate-running-snapshot'
-import { GitBranch, GitMerge, Layers, Loader2 } from 'lucide-react'
+import { GitBranch, GitMerge, Layers, Loader2 } from '@/components/icons'
 import {
   useSession,
   useSessions,
@@ -2196,6 +2196,7 @@ export function ChatWindow({
     handleCommandExecute,
     handleRemoveQueuedMessage,
     handleForceSendQueued,
+    handleReorderQueuedMessages,
   } = usePendingAttachments({
     activeSessionId,
     activeWorktreeId,
@@ -2751,6 +2752,7 @@ export function ChatWindow({
                                 worktreePath={activeWorktreePath}
                                 onRemove={handleRemoveQueuedMessage}
                                 onForceSend={handleForceSendQueued}
+                                onReorder={handleReorderQueuedMessages}
                                 isSessionIdle={!isSending}
                               />
                             )}
@@ -2805,9 +2807,14 @@ export function ChatWindow({
                             ref={formRef}
                             onSubmit={handleSubmit}
                             className={cn(
-                              'relative overflow-hidden border-t border-border bg-card transition-[background-color,box-shadow] duration-150 sm:rounded-lg sm:border',
+                              'group/promptform relative overflow-hidden border-t border-border bg-surface-1',
+                              'transition-[background-color,border-color,box-shadow] duration-200',
+                              'sm:rounded-xl sm:border',
+                              'sm:shadow-[0_2px_8px_-2px_oklch(0_0_0/0.4),inset_0_1px_0_oklch(1_0_0/0.02)]',
+                              'focus-within:border-primary/40 focus-within:bg-surface-2',
+                              'focus-within:shadow-[0_0_0_3px_oklch(0.66_0.19_268/0.18),0_4px_16px_-4px_oklch(0_0_0/0.5)]',
                               isDragging &&
-                                'ring-2 ring-primary ring-inset bg-primary/5'
+                                'border-primary/70 bg-primary/8 shadow-[0_0_0_3px_oklch(0.66_0.19_268/0.25)]'
                             )}
                             style={
                               isMobile
@@ -2904,7 +2911,7 @@ export function ChatWindow({
                               )}
 
                             {/* Textarea section */}
-                            <div className="px-4 pt-3 pb-2 md:px-6">
+                            <div className="px-4 pt-3 pb-1 md:px-5">
                               <ChatInput
                                 activeSessionId={activeSessionId}
                                 activeWorktreePath={activeWorktreePath}

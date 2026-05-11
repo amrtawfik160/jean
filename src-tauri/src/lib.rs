@@ -3343,6 +3343,7 @@ pub fn run() {
             chat::enqueue_message,
             chat::dequeue_message,
             chat::remove_queued_message,
+            chat::reorder_message_queue,
             chat::clear_message_queue,
             chat::answer_opencode_question,
             // Chat commands - ScheduleWakeup support

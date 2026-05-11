@@ -8,7 +8,7 @@ import {
   ChevronDown,
   Check,
   GitBranch,
-} from 'lucide-react'
+} from '@/components/icons'
 import { parsePatchFiles, type FileDiffMetadata } from '@pierre/diffs'
 import {
   ResizablePanelGroup,

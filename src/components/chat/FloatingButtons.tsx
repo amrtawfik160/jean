@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react'
-import { AlertCircle, ArrowDown, Check, ChevronDown } from 'lucide-react'
+import { AlertCircle, ArrowDown, Check, ChevronDown } from '@/components/icons'
 import {
   Tooltip,
   TooltipContent,
@@ -164,7 +164,7 @@ export const FloatingButtons = memo(function FloatingButtons({
           <button
             type="button"
             onClick={onScrollToFindings}
-            className="flex h-8 items-center gap-1.5 rounded-lg bg-muted/90 px-3 text-sm text-muted-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground"
+            className="flex h-8 items-center gap-1.5 rounded-full bg-popover/90 px-3 text-xs text-muted-foreground border border-border/60 shadow-[0_4px_12px_-2px_oklch(0_0_0/0.4)] backdrop-blur-md transition-[background-color,color,transform] duration-150 active:scale-[0.97] hover:bg-popover hover:text-foreground"
           >
             <AlertCircle className="h-3.5 w-3.5" />
             <span>Findings</span>
@@ -175,7 +175,7 @@ export const FloatingButtons = memo(function FloatingButtons({
           <button
             type="button"
             onClick={onScrollToBottom}
-            className="relative flex h-8 items-center gap-1.5 rounded-lg bg-muted/90 px-3 text-sm text-muted-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground"
+            className="relative flex h-8 items-center gap-1.5 rounded-full bg-popover/90 px-3 text-xs text-muted-foreground border border-border/60 shadow-[0_4px_12px_-2px_oklch(0_0_0/0.4)] backdrop-blur-md transition-[background-color,color,transform] duration-150 active:scale-[0.97] hover:bg-popover hover:text-foreground"
           >
             <ArrowDown className="h-3.5 w-3.5" />
             <span>Bottom</span>

@@ -1,5 +1,5 @@
 import { useCallback, useState, useRef, useEffect } from 'react'
-import { Folder, FolderOpen } from 'lucide-react'
+import { Folder, FolderOpen } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import type { Project } from '@/types/projects'
 import { useProjectsStore } from '@/store/projects-store'

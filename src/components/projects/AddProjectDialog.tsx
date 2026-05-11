@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isNativeApp } from '@/lib/environment'
 import { invoke } from '@/lib/transport'
-import { FolderOpen, FolderPlus, Globe } from 'lucide-react'
+import { FolderOpen, FolderPlus, Globe } from '@/components/icons'
 import {
   Dialog,
   DialogContent,

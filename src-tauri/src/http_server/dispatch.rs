@@ -2151,6 +2151,21 @@ pub async fn dispatch_command(
                 .await?;
             Ok(Value::Null)
         }
+        "reorder_message_queue" => {
+            let worktree_id: String = field(&args, "worktreeId", "worktree_id")?;
+            let worktree_path: String = field(&args, "worktreePath", "worktree_path")?;
+            let session_id: String = field(&args, "sessionId", "session_id")?;
+            let ordered_ids: Vec<String> = field(&args, "orderedIds", "ordered_ids")?;
+            let result = crate::chat::reorder_message_queue(
+                app.clone(),
+                worktree_id,
+                worktree_path,
+                session_id,
+                ordered_ids,
+            )
+            .await?;
+            to_value(result)
+        }
         "answer_opencode_question" => {
             let worktree_path: String = field(&args, "worktreePath", "worktree_path")?;
             let tool_call_id: String = field(&args, "toolCallId", "tool_call_id")?;

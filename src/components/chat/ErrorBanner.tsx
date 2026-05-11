@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { AlertCircle, X } from 'lucide-react'
+import { AlertCircle, X } from '@/components/icons'
 
 interface ErrorBannerProps {
   /** The error message to display */

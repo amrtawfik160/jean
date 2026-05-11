@@ -28,7 +28,7 @@ import {
   List,
   Code,
   Activity,
-} from 'lucide-react'
+} from '@/components/icons'
 import type { ToolCall } from '@/types/chat'
 import type { StackableItem } from './tool-call-utils'
 import { Markdown } from '@/components/ui/markdown'

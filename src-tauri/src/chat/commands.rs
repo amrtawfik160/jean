@@ -6081,6 +6081,62 @@ pub async fn remove_queued_message(
     Ok(())
 }
 
+/// Reorder queued messages by supplying the new ordered list of message ids.
+/// Messages whose ids are missing from `ordered_ids` are appended at the end
+/// in their existing order (defensive against client/server drift).
+/// Holds the metadata lock across the entire read-modify-write to prevent TOCTOU races.
+#[tauri::command]
+pub async fn reorder_message_queue(
+    app: AppHandle,
+    _worktree_id: String,
+    _worktree_path: String,
+    session_id: String,
+    ordered_ids: Vec<String>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let queue = with_existing_metadata_mut(&app, &session_id, |metadata| {
+        let current = std::mem::take(&mut metadata.queued_messages);
+        let total = current.len();
+        let mut placed: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut reordered: Vec<serde_json::Value> = Vec::with_capacity(total);
+
+        // First pass: place ids in the order requested by the client.
+        for id in &ordered_ids {
+            if placed.contains(id) {
+                continue;
+            }
+            if let Some(msg) = current.iter().find(|m| {
+                m.get("id").and_then(|v| v.as_str()) == Some(id.as_str())
+            }) {
+                reordered.push(msg.clone());
+                placed.insert(id.clone());
+            }
+        }
+
+        // Second pass: append any messages whose ids weren't supplied,
+        // preserving their original relative order (defensive against drift).
+        for msg in &current {
+            let id = msg.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+            if id.is_empty() || !placed.contains(id) {
+                reordered.push(msg.clone());
+                if !id.is_empty() {
+                    placed.insert(id.to_string());
+                }
+            }
+        }
+
+        metadata.queued_messages = reordered.clone();
+        reordered
+    })?;
+
+    app.emit_all(
+        "queue:updated",
+        &serde_json::json!({ "sessionId": session_id, "queue": queue }),
+    )
+    .ok();
+
+    Ok(queue)
+}
+
 /// Clear all queued messages for a session.
 /// Holds the metadata lock across the entire read-modify-write to prevent TOCTOU races.
 #[tauri::command]

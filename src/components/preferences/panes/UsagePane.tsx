@@ -1,5 +1,5 @@
 import React from 'react'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Loader2, RefreshCw } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
   useCodexCliAuth,

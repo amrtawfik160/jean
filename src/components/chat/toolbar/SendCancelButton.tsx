@@ -23,6 +23,15 @@ export function SendCancelButton({
 }: SendCancelButtonProps) {
   const isMobile = useIsMobile()
 
+  // Linear-style pill button with rounded corners + subtle shadow
+  const pillBase = cn(
+    'flex h-7 items-center justify-center text-xs font-medium',
+    'rounded-md px-3 gap-1.5',
+    'transition-[background-color,color,box-shadow,transform] duration-150',
+    'active:scale-[0.97] disabled:active:scale-100',
+    'disabled:pointer-events-none disabled:opacity-50'
+  )
+
   if (isSending) {
     const cancelButton = (
       <Tooltip>
@@ -31,12 +40,13 @@ export function SendCancelButton({
             type="button"
             onClick={onCancel}
             className={cn(
-              'flex h-8 items-center justify-center gap-1.5 px-3 text-xs font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90'
+              pillBase,
+              'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_1px_0_oklch(0_0_0/0.4),inset_0_1px_0_oklch(1_0_0/0.1)]'
             )}
           >
             <span>{queuedMessageCount ? 'Skip to Next' : 'Cancel'}</span>
             {!isMobile && (
-              <Kbd className="ml-0.5 h-4 text-[10px] bg-primary-foreground/20 text-primary-foreground">
+              <Kbd className="ml-0.5 h-4 text-[10px] bg-primary-foreground/20 text-primary-foreground border-transparent">
                 {isMacOS ? `${getModifierSymbol()}⌥⌫` : 'Ctrl+Alt+⌫'}
               </Kbd>
             )}
@@ -52,14 +62,16 @@ export function SendCancelButton({
 
     if (canSend) {
       return (
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
           {cancelButton}
-          <div className="h-4 w-px shrink-0 bg-border/50" />
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="submit"
-                className="flex h-8 items-center justify-center px-2.5 text-xs font-medium transition-colors text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                className={cn(
+                  pillBase,
+                  'bg-surface-2 text-muted-foreground hover:bg-surface-3 hover:text-foreground border border-border/40'
+                )}
               >
                 <span>Queue</span>
               </button>
@@ -82,10 +94,10 @@ export function SendCancelButton({
           type="submit"
           disabled={!canSend}
           className={cn(
-            'flex h-8 items-center justify-center px-3 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
+            pillBase,
             canSend
-              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-              : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_1px_0_oklch(0_0_0/0.4),inset_0_1px_0_oklch(1_0_0/0.1)]'
+              : 'bg-surface-2 text-muted-foreground border border-border/40'
           )}
         >
           <span>Send</span>

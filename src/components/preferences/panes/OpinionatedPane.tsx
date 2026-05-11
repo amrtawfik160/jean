@@ -11,7 +11,7 @@ import {
   Loader2,
   RefreshCw,
   ChevronRight,
-} from 'lucide-react'
+} from '@/components/icons'
 import { toast } from 'sonner'
 import { SettingsSection } from '../SettingsSection'
 

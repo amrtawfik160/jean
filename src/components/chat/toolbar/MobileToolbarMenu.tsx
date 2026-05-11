@@ -16,7 +16,7 @@ import {
   RefreshCw,
   Sparkles,
   Wand2,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,

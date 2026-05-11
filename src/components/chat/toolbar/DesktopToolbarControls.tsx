@@ -7,7 +7,7 @@ import {
   GitPullRequest,
   Shield,
   ShieldAlert,
-} from 'lucide-react'
+} from '@/components/icons'
 import { useCallback } from 'react'
 import { Kbd } from '@/components/ui/kbd'
 import {
@@ -232,7 +232,7 @@ export function DesktopToolbarControls({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="hidden @xl:flex h-8 items-center gap-1.5 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+                className="hidden @xl:flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.97] hover:bg-accent hover:text-foreground"
               >
                 <CircleDot className="h-3.5 w-3.5" />
                 <span>
@@ -457,7 +457,7 @@ export function DesktopToolbarControls({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  'hidden @xl:flex h-8 items-center gap-1.5 px-3 text-xs font-medium transition-colors select-none hover:bg-muted/80 hover:text-foreground',
+                  'hidden @xl:flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.97] select-none hover:bg-accent hover:text-foreground',
                   displayStatus
                     ? getPrStatusDisplay(displayStatus).className
                     : 'text-muted-foreground'
@@ -487,7 +487,7 @@ export function DesktopToolbarControls({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="hidden @xl:flex h-8 items-center gap-1.5 px-3 text-xs font-medium text-amber-600 dark:text-amber-400 transition-colors cursor-pointer hover:bg-muted/80"
+                className="hidden @xl:flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-medium text-amber-500 transition-[background-color,color,transform] duration-150 active:scale-[0.97] cursor-pointer hover:bg-amber-500/10"
                 onClick={onResolvePrConflicts}
               >
                 <GitMerge className="h-3 w-3" />
@@ -516,7 +516,7 @@ export function DesktopToolbarControls({
                     <button
                       type="button"
                       disabled={hasPendingQuestions}
-                      className="hidden @xl:flex h-8 items-center gap-1.5 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                      className="hidden @xl:flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.97] hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                     >
                       <span>{providerDisplayName}</span>
                     </button>
@@ -595,7 +595,7 @@ export function DesktopToolbarControls({
                 <button
                   type="button"
                   disabled={hasPendingQuestions}
-                  className="hidden @xl:flex h-8 items-center gap-1.5 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                  className="hidden @xl:flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.97] hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Brain className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                   <span>{displayedEffortLabel}</span>
@@ -639,7 +639,7 @@ export function DesktopToolbarControls({
                 <button
                   type="button"
                   disabled={hasPendingQuestions}
-                  className="hidden @xl:flex h-8 items-center gap-1.5 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                  className="hidden @xl:flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.97] hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Brain
                     className={cn(

@@ -18,7 +18,7 @@ import {
   Undo2,
   Link2,
   ShieldAlert,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   Dialog,
   DialogContent,

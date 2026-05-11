@@ -9,7 +9,7 @@ import React, {
 import { invoke } from '@/lib/transport'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Loader2, ChevronDown, Check, ChevronsUpDown, Play } from 'lucide-react'
+import { Loader2, ChevronDown, Check, ChevronsUpDown, Play } from '@/components/icons'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'

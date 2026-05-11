@@ -15,7 +15,7 @@ import {
   Eye,
   Save,
   ExternalLink,
-} from 'lucide-react'
+} from '@/components/icons'
 import { invoke, convertFileSrc } from '@/lib/transport'
 import {
   Dialog,

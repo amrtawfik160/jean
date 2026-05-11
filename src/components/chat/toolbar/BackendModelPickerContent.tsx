@@ -1,4 +1,4 @@
-import { Check, Star, Zap } from 'lucide-react'
+import { Check, Star, Zap } from '@/components/icons'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import {

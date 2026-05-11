@@ -17,6 +17,7 @@ import { DevModeBanner } from './DevModeBanner'
 import { SidebarWidthProvider } from './SidebarWidthContext'
 import { MainWindowContent } from './MainWindowContent'
 import { CommandPalette } from '@/components/command-palette/CommandPalette'
+import { ShortcutCheatsheet } from '@/components/command-palette/ShortcutCheatsheet'
 import { QuitConfirmationDialog } from './QuitConfirmationDialog'
 import { BranchConflictDialog } from '@/components/worktree/BranchConflictDialog'
 import { TeardownOutputDialog } from '@/components/worktree/TeardownOutputDialog'
@@ -485,11 +486,12 @@ export function MainWindow() {
         {/* Custom resize handle for left sidebar */}
         {leftSidebarVisible && isInitialized && (
           <div
-            className="relative h-full w-px bg-border"
+            className="group/resize relative h-full w-px bg-sidebar-border transition-colors duration-150 hover:bg-primary/50"
             onMouseDown={handleResizeStart}
           >
-            {/* Invisible wider hit area for easier clicking */}
+            {/* Invisible wider hit area + visual hover indicator */}
             <div className="absolute inset-y-0 -left-1.5 -right-1.5 cursor-col-resize" />
+            <div className="absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 h-8 w-[3px] rounded-full bg-primary/0 group-hover/resize:bg-primary/40 transition-colors duration-200" />
           </div>
         )}
 
@@ -509,6 +511,7 @@ export function MainWindow() {
 
       {/* Global UI Components (hidden until triggered) */}
       <CommandPalette />
+      <ShortcutCheatsheet />
       {shouldRenderPreferencesDialog && (
         <Suspense fallback={null}>
           <PreferencesDialog />
@@ -657,16 +660,21 @@ export function MainWindow() {
         mobileOffset={toasterOffset}
         expand={true}
         swipeDirections={['left', 'right', 'top', 'bottom']}
-        style={{ '--width': '400px' } as CSSProperties}
+        style={{ '--width': '380px' } as CSSProperties}
         toastOptions={{
           classNames: {
-            toast:
-              'group toast group-[.toaster]:bg-sidebar group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
+            toast: cn(
+              'group toast',
+              'group-[.toaster]:bg-popover/95 group-[.toaster]:text-foreground',
+              'group-[.toaster]:border group-[.toaster]:border-border/70',
+              'group-[.toaster]:rounded-xl group-[.toaster]:backdrop-blur-md',
+              'group-[.toaster]:shadow-[0_8px_24px_-4px_oklch(0_0_0/0.5),0_0_0_1px_oklch(0.27_0.01_270/0.4)]'
+            ),
             description: 'group-[.toast]:text-muted-foreground',
             actionButton:
-              'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
+              'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:rounded-md',
             cancelButton:
-              'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
+              'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground group-[.toast]:rounded-md',
           },
         }}
       />

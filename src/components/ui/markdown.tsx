@@ -17,7 +17,7 @@ import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import remend from 'remend'
-import { Copy, Check, Table, ListChecks } from 'lucide-react'
+import { Copy, Check, Table, ListChecks } from '@/components/icons'
 import { toast } from 'sonner'
 import { copyToClipboard } from '@/lib/clipboard'
 import {

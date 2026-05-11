@@ -8,13 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useTheme } from '@/hooks/use-theme'
 import { usePreferences, usePatchPreferences } from '@/services/preferences'
 import {
   uiFontOptions,
   chatFontOptions,
   syntaxThemeDarkOptions,
-  syntaxThemeLightOptions,
   fileEditModeOptions,
   FONT_SIZE_DEFAULT,
   ZOOM_LEVEL_DEFAULT,
@@ -64,23 +62,12 @@ const ScalingField: React.FC<{
 const modKey = isMacOS ? 'Cmd' : 'Ctrl'
 
 export const AppearancePane: React.FC = () => {
-  const { theme, setTheme } = useTheme()
   const { data: preferences } = usePreferences()
   const patchPreferences = usePatchPreferences()
 
-  // Zoom uses commit-only saving to avoid flickering the webview during drag.
-  // localZoom tracks slider position, preferences are saved only on release.
   const prefsZoom = preferences?.zoom_level ?? ZOOM_LEVEL_DEFAULT
   const [localZoom, setLocalZoom] = useState<number | null>(null)
   const zoomValue = localZoom ?? prefsZoom
-
-  const handleThemeChange = useCallback(
-    async (value: 'light' | 'dark' | 'system') => {
-      setTheme(value)
-      patchPreferences.mutate({ theme: value })
-    },
-    [setTheme, patchPreferences]
-  )
 
   const handleFontSizeChange = useCallback(
     (field: 'ui_font_size' | 'chat_font_size', value: number) => {
@@ -107,8 +94,8 @@ export const AppearancePane: React.FC = () => {
   )
 
   const handleSyntaxThemeChange = useCallback(
-    (field: 'syntax_theme_dark' | 'syntax_theme_light', value: SyntaxTheme) => {
-      patchPreferences.mutate({ [field]: value })
+    (value: SyntaxTheme) => {
+      patchPreferences.mutate({ syntax_theme_dark: value })
     },
     [patchPreferences]
   )
@@ -125,36 +112,13 @@ export const AppearancePane: React.FC = () => {
       <SettingsSection title="Theme" anchorId="pref-appearance-section-theme">
         <div className="space-y-4">
           <InlineField
-            label="Color theme"
-            description="Choose your preferred color scheme"
-          >
-            <Select
-              value={theme}
-              onValueChange={handleThemeChange}
-              disabled={patchPreferences.isPending}
-            >
-              <SelectTrigger className="w-full sm:min-w-96">
-                <SelectValue placeholder="Select theme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-          </InlineField>
-
-          <InlineField
-            label="Syntax theme (dark)"
-            description="Highlighting theme for code in dark mode"
+            label="Syntax theme"
+            description="Highlighting theme used for code blocks"
           >
             <Select
               value={preferences?.syntax_theme_dark ?? 'vitesse-black'}
               onValueChange={value =>
-                handleSyntaxThemeChange(
-                  'syntax_theme_dark',
-                  value as SyntaxTheme
-                )
+                handleSyntaxThemeChange(value as SyntaxTheme)
               }
               disabled={patchPreferences.isPending}
             >
@@ -163,33 +127,6 @@ export const AppearancePane: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 {syntaxThemeDarkOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </InlineField>
-
-          <InlineField
-            label="Syntax theme (light)"
-            description="Highlighting theme for code in light mode"
-          >
-            <Select
-              value={preferences?.syntax_theme_light ?? 'github-light'}
-              onValueChange={value =>
-                handleSyntaxThemeChange(
-                  'syntax_theme_light',
-                  value as SyntaxTheme
-                )
-              }
-              disabled={patchPreferences.isPending}
-            >
-              <SelectTrigger className="w-96">
-                <SelectValue placeholder="Select theme" />
-              </SelectTrigger>
-              <SelectContent>
-                {syntaxThemeLightOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>

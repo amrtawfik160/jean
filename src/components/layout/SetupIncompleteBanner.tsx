@@ -7,7 +7,7 @@ import {
 import { useGhCliStatus, useGhCliAuth } from '@/services/gh-cli'
 import { useUIStore } from '@/store/ui-store'
 import { isNativeApp } from '@/lib/environment'
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from '@/components/icons'
 
 export function SetupIncompleteBanner() {
   const onboardingDismissed = useUIStore(state => state.onboardingDismissed)

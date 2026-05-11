@@ -1,6 +1,10 @@
 import { useCallback, type RefObject } from 'react'
 import { generateId } from '@/lib/uuid'
-import { persistEnqueue, persistRemoveQueued } from '@/services/chat'
+import {
+  persistEnqueue,
+  persistRemoveQueued,
+  persistReorderQueue,
+} from '@/services/chat'
 import { useChatStore } from '@/store/chat-store'
 import { buildMcpConfigJson } from '@/services/mcp'
 import { getFilename } from '@/lib/path-utils'
@@ -166,6 +170,20 @@ export function usePendingAttachments({
     useChatStore.getState().forceProcessQueue(sessionId)
   }, [])
 
+  const handleReorderQueuedMessages = useCallback(
+    (sessionId: string, orderedIds: string[]) => {
+      useChatStore.getState().reorderQueuedMessages(sessionId, orderedIds)
+      // Persist reorder to backend for cross-client sync
+      const { sessionWorktreeMap, worktreePaths } = useChatStore.getState()
+      const wtId = sessionWorktreeMap[sessionId]
+      const wtPath = wtId ? worktreePaths[wtId] : undefined
+      if (wtId && wtPath) {
+        persistReorderQueue(wtId, wtPath, sessionId, orderedIds)
+      }
+    },
+    []
+  )
+
   return {
     handleRemovePendingImage,
     handleRemovePendingTextFile,
@@ -174,5 +192,6 @@ export function usePendingAttachments({
     handleCommandExecute,
     handleRemoveQueuedMessage,
     handleForceSendQueued,
+    handleReorderQueuedMessages,
   }
 }

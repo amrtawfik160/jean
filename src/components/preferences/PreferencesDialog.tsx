@@ -13,7 +13,7 @@ import {
   Github,
   Sparkles,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   Breadcrumb,
   BreadcrumbItem,

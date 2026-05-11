@@ -8,7 +8,7 @@ import {
   Settings,
   RefreshCw,
   BellDot,
-} from 'lucide-react'
+} from '@/components/icons'
 import type { AppCommand } from './types'
 import { useUIStore } from '@/store/ui-store'
 

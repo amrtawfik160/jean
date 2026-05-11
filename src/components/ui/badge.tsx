@@ -5,17 +5,25 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-[color,box-shadow] overflow-hidden',
+  cn(
+    'inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-none w-fit whitespace-nowrap shrink-0 gap-1 overflow-hidden',
+    '[&>svg]:size-3 [&>svg]:pointer-events-none',
+    'focus-visible:ring-2 focus-visible:ring-ring/50',
+    'transition-[color,background-color,border-color,box-shadow] duration-150'
+  ),
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
+        default:
+          'bg-primary/15 text-primary border border-primary/30 [a&]:hover:bg-primary/25',
         secondary:
-          'bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
+          'bg-surface-2 text-secondary-foreground border border-border/40 [a&]:hover:bg-surface-3',
         destructive:
-          'bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
-        outline: 'bg-muted/50 text-foreground [a&]:hover:bg-muted',
-        muted: 'bg-muted/50 text-muted-foreground [a&]:hover:bg-muted',
+          'bg-destructive/15 text-destructive border border-destructive/30 [a&]:hover:bg-destructive/25',
+        outline:
+          'bg-transparent text-foreground border border-border [a&]:hover:bg-surface-2',
+        muted:
+          'bg-muted/60 text-muted-foreground border border-transparent [a&]:hover:bg-muted',
       },
     },
     defaultVariants: {

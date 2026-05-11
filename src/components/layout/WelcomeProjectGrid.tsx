@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus } from '@/components/icons'
 import { convertFileSrc } from '@/lib/transport'
 import type { Project } from '@/types/projects'
 import { useAppDataDir } from '@/services/projects'
