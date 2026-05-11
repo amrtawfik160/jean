@@ -32,6 +32,8 @@ export interface UIState {
   left_sidebar_size?: number
   /** Left sidebar visibility, defaults to false */
   left_sidebar_visible?: boolean
+  /** Left sidebar collapsed to rail mode (icon-only 48px) */
+  left_sidebar_collapsed?: boolean
   /** Active session ID per worktree (for restoring open tabs) */
   active_session_ids: Record<string, string>
   /** Whether the review sidebar is visible */

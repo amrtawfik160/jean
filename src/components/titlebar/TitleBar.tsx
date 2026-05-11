@@ -47,9 +47,27 @@ export function TitleBar({
   title = 'Jean',
   hideTitle = false,
 }: TitleBarProps) {
-  const { leftSidebarVisible, toggleLeftSidebar } = useUIStore()
+  const leftSidebarVisible = useUIStore(s => s.leftSidebarVisible)
+  const leftSidebarCollapsed = useUIStore(s => s.leftSidebarCollapsed)
+  const cycleLeftSidebar = useUIStore(s => s.cycleLeftSidebar)
   const rightSidebarVisible = useUIStore(s => s.rightSidebarVisible)
   const setRightSidebarVisible = useUIStore(s => s.setRightSidebarVisible)
+
+  const sidebarState = !leftSidebarVisible
+    ? 'hidden'
+    : leftSidebarCollapsed
+      ? 'rail'
+      : 'expanded'
+  const sidebarStateLabel: Record<typeof sidebarState, string> = {
+    expanded: 'Expanded',
+    rail: 'Rail (icon-only)',
+    hidden: 'Hidden',
+  }
+  const nextSidebarStateLabel: Record<typeof sidebarState, string> = {
+    expanded: 'Rail',
+    rail: 'Hide',
+    hidden: 'Expand',
+  }
   const commandContext = useCommandContext()
   const { data: preferences } = usePreferences()
   const isMobile = useIsMobile()
@@ -95,12 +113,17 @@ export function TitleBar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                onClick={toggleLeftSidebar}
+                onClick={cycleLeftSidebar}
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent/60"
+                className={cn(
+                  'h-6 w-6 rounded-md hover:bg-accent/60',
+                  sidebarState === 'hidden'
+                    ? 'text-foreground/60 hover:text-foreground'
+                    : 'text-foreground hover:text-foreground'
+                )}
               >
-                {leftSidebarVisible ? (
+                {sidebarState === 'expanded' ? (
                   <PanelLeftClose className="size-3.5" />
                 ) : (
                   <PanelLeft className="size-3.5" />
@@ -108,7 +131,8 @@ export function TitleBar({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {leftSidebarVisible ? 'Hide' : 'Show'} Left Sidebar{' '}
+              Sidebar: {sidebarStateLabel[sidebarState]} — click for{' '}
+              {nextSidebarStateLabel[sidebarState]}{' '}
               <kbd className="ml-1 text-[0.625rem] opacity-60">
                 {sidebarShortcut}
               </kbd>

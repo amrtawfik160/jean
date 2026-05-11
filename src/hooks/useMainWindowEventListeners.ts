@@ -145,10 +145,8 @@ function executeKeybindingAction(
       window.dispatchEvent(new CustomEvent('focus-chat-input'))
       break
     case 'toggle_left_sidebar': {
-      logger.debug('Keybinding: toggle_left_sidebar')
-      const { leftSidebarVisible, setLeftSidebarVisible } =
-        useUIStore.getState()
-      setLeftSidebarVisible(!leftSidebarVisible)
+      logger.debug('Keybinding: toggle_left_sidebar (cycle)')
+      useUIStore.getState().cycleLeftSidebar()
       break
     }
     case 'open_preferences':
@@ -758,9 +756,7 @@ export function useMainWindowEventListeners() {
 
         listen('menu-toggle-left-sidebar', () => {
           logger.debug('Toggle left sidebar menu event received')
-          const { leftSidebarVisible, setLeftSidebarVisible } =
-            useUIStore.getState()
-          setLeftSidebarVisible(!leftSidebarVisible)
+          useUIStore.getState().cycleLeftSidebar()
         }),
 
         listen('menu-toggle-right-sidebar', () => {

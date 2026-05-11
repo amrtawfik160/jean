@@ -87,7 +87,8 @@ export function useUIStatePersistence() {
       dashboardWorktreeCollapseOverrides,
       projectCanvasSettings,
     } = useProjectsStore.getState()
-    const { leftSidebarSize, leftSidebarVisible } = useUIStore.getState()
+    const { leftSidebarSize, leftSidebarVisible, leftSidebarCollapsed } =
+      useUIStore.getState()
     const {
       modalTerminalOpen,
       modalTerminalDockMode,
@@ -111,6 +112,7 @@ export function useUIStatePersistence() {
       expanded_folder_ids: Array.from(expandedFolderIds),
       left_sidebar_size: leftSidebarSize,
       left_sidebar_visible: leftSidebarVisible,
+      left_sidebar_collapsed: leftSidebarCollapsed,
       active_session_ids: activeSessionIds,
       // Review sidebar visibility
       review_sidebar_visible: reviewSidebarVisible,
@@ -222,6 +224,15 @@ export function useUIStatePersistence() {
         visible: uiState.left_sidebar_visible,
       })
       useUIStore.getState().setLeftSidebarVisible(uiState.left_sidebar_visible)
+    }
+
+    if (uiState.left_sidebar_collapsed !== undefined) {
+      logger.debug('Restoring left sidebar collapsed', {
+        collapsed: uiState.left_sidebar_collapsed,
+      })
+      useUIStore
+        .getState()
+        .setLeftSidebarCollapsed(uiState.left_sidebar_collapsed)
     }
 
     // Restore active project first (selectProject clears selectedWorktreeId)
@@ -522,6 +533,7 @@ export function useUIStatePersistence() {
       useProjectsStore.getState().projectCanvasSettings
     let prevLeftSidebarSize = useUIStore.getState().leftSidebarSize
     let prevLeftSidebarVisible = useUIStore.getState().leftSidebarVisible
+    let prevLeftSidebarCollapsed = useUIStore.getState().leftSidebarCollapsed
     let prevWorktreeId = useChatStore.getState().activeWorktreeId
     let prevWorktreePath = useChatStore.getState().activeWorktreePath
     let prevLastActiveWorktreeId = useChatStore.getState().lastActiveWorktreeId
@@ -582,15 +594,18 @@ export function useUIStatePersistence() {
       }
     })
 
-    // Subscribe to ui-store changes (sidebar size and visibility)
+    // Subscribe to ui-store changes (sidebar size, visibility, collapsed)
     const unsubUI = useUIStore.subscribe(state => {
       const sizeChanged = state.leftSidebarSize !== prevLeftSidebarSize
       const visibilityChanged =
         state.leftSidebarVisible !== prevLeftSidebarVisible
+      const collapsedChanged =
+        state.leftSidebarCollapsed !== prevLeftSidebarCollapsed
 
-      if (sizeChanged || visibilityChanged) {
+      if (sizeChanged || visibilityChanged || collapsedChanged) {
         prevLeftSidebarSize = state.leftSidebarSize
         prevLeftSidebarVisible = state.leftSidebarVisible
+        prevLeftSidebarCollapsed = state.leftSidebarCollapsed
         const currentState = getCurrentUIState()
         debouncedSaveRef.current?.(currentState)
       }

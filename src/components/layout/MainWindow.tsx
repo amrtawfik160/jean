@@ -203,8 +203,13 @@ export function MainWindow() {
   const isMaximized = useWindowMaximized()
   const toasterOffset = useToasterOffset()
   const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
+  const leftSidebarCollapsed = useUIStore(state => state.leftSidebarCollapsed)
   const leftSidebarSize = useUIStore(state => state.leftSidebarSize)
   const setLeftSidebarSize = useUIStore(state => state.setLeftSidebarSize)
+  const railWidth = 48
+  const effectiveSidebarWidth = leftSidebarCollapsed
+    ? railWidth
+    : leftSidebarSize
   const preferencesOpen = useUIStore(state => state.preferencesOpen)
   const commitModalOpen = useUIStore(state => state.commitModalOpen)
   const onboardingOpen = useUIStore(state => state.onboardingOpen)
@@ -472,11 +477,11 @@ export function MainWindow() {
       <div className="flex flex-1 overflow-hidden pt-8">
         {/* Left Sidebar with pixel-based width - only render after UI state is initialized */}
         {leftSidebarVisible && isInitialized && (
-          <SidebarWidthProvider value={leftSidebarSize}>
+          <SidebarWidthProvider value={effectiveSidebarWidth}>
             <div
               ref={sidebarRef}
-              className="h-full overflow-hidden"
-              style={{ width: leftSidebarSize }}
+              className="h-full overflow-hidden transition-[width] duration-200"
+              style={{ width: effectiveSidebarWidth }}
             >
               <Suspense fallback={null}>
                 <LeftSideBar />
@@ -485,8 +490,8 @@ export function MainWindow() {
           </SidebarWidthProvider>
         )}
 
-        {/* Custom resize handle for left sidebar */}
-        {leftSidebarVisible && isInitialized && (
+        {/* Custom resize handle for left sidebar (hidden in rail/collapsed mode) */}
+        {leftSidebarVisible && !leftSidebarCollapsed && isInitialized && (
           <div
             className="group/resize relative h-full w-px bg-sidebar-border transition-colors duration-150 hover:bg-primary/50"
             onMouseDown={handleResizeStart}
@@ -495,6 +500,11 @@ export function MainWindow() {
             <div className="absolute inset-y-0 -left-1.5 -right-1.5 cursor-col-resize" />
             <div className="absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 h-8 w-[3px] rounded-full bg-primary/0 group-hover/resize:bg-primary/40 transition-colors duration-200" />
           </div>
+        )}
+
+        {/* Hairline separator in rail mode (no resize affordance) */}
+        {leftSidebarVisible && leftSidebarCollapsed && isInitialized && (
+          <div className="h-full w-px bg-sidebar-border/60" />
         )}
 
         {/* Main Content + bottom browser panel stacked vertically */}

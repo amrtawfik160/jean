@@ -33,6 +33,8 @@ export type CliLoginModalType =
 
 interface UIState {
   leftSidebarVisible: boolean
+  /** When true and visible, sidebar renders in icon-only rail mode (48px). */
+  leftSidebarCollapsed: boolean
   leftSidebarSize: number // Width in pixels, persisted across sessions
   rightSidebarVisible: boolean
   commandPaletteOpen: boolean
@@ -105,7 +107,10 @@ interface UIState {
   /** When non-null, shows the update available modal */
   updateModalVersion: string | null
   toggleLeftSidebar: () => void
+  /** Cycle through expanded → rail (collapsed) → hidden → expanded… */
+  cycleLeftSidebar: () => void
   setLeftSidebarVisible: (visible: boolean) => void
+  setLeftSidebarCollapsed: (collapsed: boolean) => void
   setLeftSidebarSize: (size: number) => void
   toggleRightSidebar: () => void
   setRightSidebarVisible: (visible: boolean) => void
@@ -198,6 +203,7 @@ export const useUIStore = create<UIState>()(
   devtools(
     (set, get) => ({
       leftSidebarVisible: false,
+      leftSidebarCollapsed: false,
       leftSidebarSize: 250, // Default width in pixels
       rightSidebarVisible: false,
       commandPaletteOpen: false,
@@ -258,11 +264,35 @@ export const useUIStore = create<UIState>()(
           'toggleLeftSidebar'
         ),
 
+      cycleLeftSidebar: () =>
+        set(
+          state => {
+            // expanded (visible, !collapsed) → rail (visible, collapsed) →
+            // hidden (!visible) → expanded
+            if (state.leftSidebarVisible && !state.leftSidebarCollapsed) {
+              return { leftSidebarCollapsed: true }
+            }
+            if (state.leftSidebarVisible && state.leftSidebarCollapsed) {
+              return { leftSidebarVisible: false, leftSidebarCollapsed: true }
+            }
+            return { leftSidebarVisible: true, leftSidebarCollapsed: false }
+          },
+          undefined,
+          'cycleLeftSidebar'
+        ),
+
       setLeftSidebarVisible: visible =>
         set(
           { leftSidebarVisible: visible },
           undefined,
           'setLeftSidebarVisible'
+        ),
+
+      setLeftSidebarCollapsed: collapsed =>
+        set(
+          { leftSidebarCollapsed: collapsed },
+          undefined,
+          'setLeftSidebarCollapsed'
         ),
 
       toggleRightSidebar: () =>

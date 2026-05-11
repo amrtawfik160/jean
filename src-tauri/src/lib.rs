@@ -1545,6 +1545,10 @@ pub struct UIState {
     #[serde(default)]
     pub left_sidebar_visible: Option<bool>,
 
+    /// Left sidebar collapsed to rail mode (icon-only 48px), defaults to false
+    #[serde(default)]
+    pub left_sidebar_collapsed: Option<bool>,
+
     /// Active session ID per worktree (for restoring open tabs)
     #[serde(default)]
     pub active_session_ids: std::collections::HashMap<String, String>,
@@ -1669,6 +1673,7 @@ impl Default for UIState {
             expanded_folder_ids: Vec::new(),
             left_sidebar_size: None,
             left_sidebar_visible: None,
+            left_sidebar_collapsed: None,
             active_session_ids: std::collections::HashMap::new(),
             review_sidebar_visible: None,
             modal_terminal_open: std::collections::HashMap::new(),
