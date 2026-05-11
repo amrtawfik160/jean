@@ -51,11 +51,11 @@ export function ProjectsSidebar() {
   return (
     <div className="flex h-full flex-col">
       {/* Linear-style sidebar header */}
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-sidebar-border/60 px-3">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80">
+      <div className="flex h-9 shrink-0 items-center justify-between px-3">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
           Projects
         </span>
-        <span className="rounded-md bg-sidebar-accent/40 px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground/70">
+        <span className="rounded-md bg-sidebar-accent/30 px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground/60">
           {projects.filter(p => !p.is_folder).length}
         </span>
       </div>
@@ -79,7 +79,7 @@ export function ProjectsSidebar() {
 
       {/* Footer — Linear-style ghost row */}
       <div
-        className={`flex gap-1 border-t border-sidebar-border p-1.5 ${isNarrow ? 'flex-col' : 'items-center'}`}
+        className={`flex gap-1 p-1.5 ${isNarrow ? 'flex-col' : 'items-center'}`}
       >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

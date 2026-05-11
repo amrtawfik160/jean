@@ -394,8 +394,8 @@ export function FloatingDock() {
       DEFAULT_KEYBINDINGS.open_usage_dropdown) as string
   )
   const isWebAccess = !isNativeApp()
-  // StatusStrip already shows the connection dot on desktop. On mobile the
-  // status strip is below the dock + harder to scan, so keep the indicator.
+  // Web access only — desktop native doesn't need a "connecting" indicator.
+  // Hidden on desktop because the corner dock would crowd the canvas.
   const showConnectionIndicator = isWebAccess && isMobile
   const showKeybindingHints = isNativeApp() && !isMobile
   const popoverSide = isMobile || isLg ? 'top' : ('right' as const)
@@ -517,7 +517,7 @@ export function FloatingDock() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Command palette button — only show on mobile; desktop has StatusStrip */}
+      {/* Palette is reachable via ⌘K everywhere — only mount the dock button on mobile. */}
       {isMobile && (
         <Tooltip>
           <TooltipTrigger asChild>

@@ -2807,14 +2807,12 @@ export function ChatWindow({
                             ref={formRef}
                             onSubmit={handleSubmit}
                             className={cn(
-                              'group/promptform relative overflow-hidden border-t border-border bg-surface-1',
-                              'transition-[background-color,border-color,box-shadow] duration-200',
+                              'group/promptform relative overflow-hidden border-t border-border/60 bg-surface-1',
+                              'transition-[background-color,border-color] duration-200',
                               'sm:rounded-xl sm:border',
-                              'sm:shadow-[0_2px_8px_-2px_oklch(0_0_0/0.4),inset_0_1px_0_oklch(1_0_0/0.02)]',
-                              'focus-within:border-primary/40 focus-within:bg-surface-2',
-                              'focus-within:shadow-[0_0_0_3px_oklch(0.66_0.19_268/0.18),0_4px_16px_-4px_oklch(0_0_0/0.5)]',
+                              'focus-within:border-border focus-within:bg-surface-2',
                               isDragging &&
-                                'border-primary/70 bg-primary/8 shadow-[0_0_0_3px_oklch(0.66_0.19_268/0.25)]'
+                                'border-primary/60 bg-primary/5'
                             )}
                             style={
                               isMobile

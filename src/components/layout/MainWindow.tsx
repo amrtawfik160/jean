@@ -18,7 +18,6 @@ import { SidebarWidthProvider } from './SidebarWidthContext'
 import { MainWindowContent } from './MainWindowContent'
 import { CommandPalette } from '@/components/command-palette/CommandPalette'
 import { ShortcutCheatsheet } from '@/components/command-palette/ShortcutCheatsheet'
-import { StatusStrip } from './StatusStrip'
 import { RightContextRail } from './RightContextRail'
 import { QuitConfirmationDialog } from './QuitConfirmationDialog'
 import { BranchConflictDialog } from '@/components/worktree/BranchConflictDialog'
@@ -493,18 +492,13 @@ export function MainWindow() {
         {/* Custom resize handle for left sidebar (hidden in rail/collapsed mode) */}
         {leftSidebarVisible && !leftSidebarCollapsed && isInitialized && (
           <div
-            className="group/resize relative h-full w-px bg-sidebar-border transition-colors duration-150 hover:bg-primary/50"
+            className="group/resize relative h-full w-px bg-transparent transition-colors duration-150 hover:bg-primary/40"
             onMouseDown={handleResizeStart}
           >
             {/* Invisible wider hit area + visual hover indicator */}
             <div className="absolute inset-y-0 -left-1.5 -right-1.5 cursor-col-resize" />
             <div className="absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 h-8 w-[3px] rounded-full bg-primary/0 group-hover/resize:bg-primary/40 transition-colors duration-200" />
           </div>
-        )}
-
-        {/* Hairline separator in rail mode (no resize affordance) */}
-        {leftSidebarVisible && leftSidebarCollapsed && isInitialized && (
-          <div className="h-full w-px bg-sidebar-border/60" />
         )}
 
         {/* Main Content + bottom browser panel stacked vertically */}
@@ -523,9 +517,6 @@ export function MainWindow() {
         {/* Browser side pane - native-only, mounts on right edge */}
         <BrowserSidePane />
       </div>
-
-      {/* Linear-style bottom status strip */}
-      <StatusStrip />
 
       {/* Global UI Components (hidden until triggered) */}
       <CommandPalette />

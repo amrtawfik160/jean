@@ -116,15 +116,15 @@ export function RightContextRail({ width = 280 }: RightContextRailProps) {
           animate={{ width, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 360, damping: 32 }}
-          className="relative shrink-0 overflow-hidden border-l border-sidebar-border bg-sidebar"
+          className="relative shrink-0 overflow-hidden border-l border-sidebar-border/60 bg-sidebar"
         >
           <div
             style={{ width }}
             className="flex h-full flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex h-9 shrink-0 items-center justify-between border-b border-sidebar-border/60 px-3">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80">
+            <div className="flex h-9 shrink-0 items-center justify-between px-3">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
                 Context
               </span>
               <button
@@ -317,7 +317,7 @@ function RailSection({
 }) {
   return (
     <section>
-      <h3 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+      <h3 className="mb-1.5 px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/55">
         {title}
       </h3>
       <div className="space-y-1">{children}</div>
