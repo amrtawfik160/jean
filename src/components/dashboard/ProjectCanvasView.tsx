@@ -364,15 +364,15 @@ function WorktreeSectionHeader({
     <>
       <div
         className={cn(
-          'group relative border border-transparent transition-colors',
+          'group relative border border-transparent transition-[background-color,border-color] duration-150',
           showDetails
-            ? 'mb-1 rounded-md px-3 py-2'
+            ? 'mb-1 rounded-lg px-3 py-2'
             : 'mb-0.5 flex items-center gap-2',
           onRowClick &&
             (showDetails
-              ? 'cursor-pointer hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60'
-              : 'cursor-pointer px-2 -mx-2 py-1 hover:bg-muted/50'),
-          isSelected && onRowClick && 'border-border/40 bg-muted/35'
+              ? 'cursor-pointer hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+              : 'cursor-pointer rounded-md px-2 -mx-2 py-1 hover:bg-surface-2'),
+          isSelected && onRowClick && 'border-border/60 bg-surface-2'
         )}
         onClick={onRowClick}
         onKeyDown={e => {
@@ -531,27 +531,27 @@ function WorktreeSectionHeader({
           {showDetails && sessionMetrics && (
             <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               {sessionMetrics.waitingCount > 0 && (
-                <span className="rounded bg-yellow-500/90 px-2 py-0.5 text-black">
+                <span className="rounded-md border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
                   {sessionMetrics.waitingCount} waiting
                 </span>
               )}
               {sessionMetrics.planningCount > 0 && (
-                <span className="rounded bg-sky-500/10 px-2 py-0.5 text-sky-600">
+                <span className="rounded-md border border-sky-500/30 bg-sky-500/12 px-1.5 py-0.5 text-[10px] font-medium text-sky-400">
                   {sessionMetrics.planningCount} planning
                 </span>
               )}
               {sessionMetrics.buildingCount > 0 && (
-                <span className="rounded bg-indigo-500/10 px-2 py-0.5 text-indigo-600">
+                <span className="rounded-md border border-primary/30 bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                   {sessionMetrics.buildingCount} building
                 </span>
               )}
               {sessionMetrics.yoloCount > 0 && (
-                <span className="rounded bg-red-500/10 px-2 py-0.5 text-red-600">
+                <span className="rounded-md border border-orange-500/30 bg-orange-500/12 px-1.5 py-0.5 text-[10px] font-medium text-orange-400">
                   {sessionMetrics.yoloCount} yolo
                 </span>
               )}
               {sessionMetrics.reviewCount > 0 && (
-                <span className="rounded bg-green-500/10 px-2 py-0.5 text-green-600">
+                <span className="rounded-md border border-emerald-500/30 bg-emerald-500/12 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
                   {sessionMetrics.reviewCount} review
                 </span>
               )}
@@ -2039,7 +2039,7 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
     <div className="relative flex h-full flex-col">
       <div className="flex-1 flex flex-col overflow-auto">
         {/* Header with Search - sticky over content */}
-        <div className="sticky top-0 z-10 relative grid grid-cols-[auto_1fr_auto] items-center gap-4 bg-background/60 backdrop-blur-md px-4 py-2 sm:py-3 border-b border-border/30 sm:min-h-[61px]">
+        <div className="sticky top-0 z-10 relative grid grid-cols-[auto_1fr_auto] items-center gap-4 bg-background/85 backdrop-blur-xl px-4 py-2 sm:py-2.5 border-b border-border/50 sm:min-h-[52px]">
           <div className="flex flex-col shrink-0">
             <div className="flex items-center gap-2">
               <h2 className="truncate text-lg font-semibold">{project.name}</h2>

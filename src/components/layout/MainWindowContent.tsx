@@ -155,22 +155,33 @@ export function MainWindowContent({
           onAddProject={() => setAddProjectDialogOpen(true)}
         />
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 font-sans">
-          <h1 className="text-4xl font-bold text-foreground">
-            Welcome to Jean!
-          </h1>
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-7 overflow-hidden font-sans px-6">
+          {/* Subtle indigo orb backdrop */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_50%_30%,oklch(0.66_0.19_268/0.10),transparent_60%)]"
+          />
+          <div className="relative flex flex-col items-center gap-2 text-center">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              Welcome to Jean
+            </h1>
+            <p className="max-w-md text-sm text-muted-foreground">
+              Pair-program with Claude, Codex, or any backend across as many
+              worktrees as you want.
+            </p>
+          </div>
           {awaitingBackendCheck || backendsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="relative flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Calling Jean…</span>
             </div>
           ) : setupIncomplete ? (
-            <div className="flex flex-col items-center gap-3">
+            <div className="relative flex flex-col items-center gap-3">
               <p className="text-sm text-muted-foreground">
                 Complete setup to start adding projects.
               </p>
               <Button
-                variant="outline"
+                variant="default"
                 size="lg"
                 onClick={() =>
                   useUIStore.setState({
@@ -185,13 +196,16 @@ export function MainWindowContent({
             </div>
           ) : (
             <Button
-              variant="outline"
+              variant="default"
               size="lg"
               onClick={() => setAddProjectDialogOpen(true)}
+              className="relative"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 size-4" />
               Add Your First Project
-              <Kbd className="ml-2 h-5 px-1.5 text-[10px]">↵</Kbd>
+              <Kbd className="ml-2 h-5 px-1.5 text-[10px] bg-primary-foreground/15 text-primary-foreground border-transparent">
+                ↵
+              </Kbd>
             </Button>
           )}
         </div>
