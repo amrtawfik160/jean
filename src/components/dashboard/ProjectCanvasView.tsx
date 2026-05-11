@@ -186,8 +186,7 @@ const CANVAS_FILTER_TABS: {
 
 function isIssueWorktree(worktree: Worktree): boolean {
   return (
-    worktree.issue_number != null ||
-    !!worktree.linear_issue_identifier?.trim()
+    worktree.issue_number != null || !!worktree.linear_issue_identifier?.trim()
   )
 }
 
@@ -663,8 +662,7 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
   const openInEditor = useOpenWorktreeInEditor()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeFilterTab, setActiveFilterTab] =
-    useState<CanvasFilterTab>('all')
+  const [activeFilterTab, setActiveFilterTab] = useState<CanvasFilterTab>('all')
   const isMobile = useIsMobile()
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
 
@@ -1610,6 +1608,30 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
     [activeFilterTab]
   )
 
+  const handleFilterTabKeyboardNav = useCallback(
+    (delta: -1 | 1) => {
+      const currentIndex = CANVAS_FILTER_TABS.findIndex(
+        tab => tab.value === activeFilterTab
+      )
+      const safeCurrentIndex = currentIndex === -1 ? 0 : currentIndex
+      const nextIndex =
+        (safeCurrentIndex + delta + CANVAS_FILTER_TABS.length) %
+        CANVAS_FILTER_TABS.length
+      const nextTab = CANVAS_FILTER_TABS[nextIndex]
+
+      if (nextTab) {
+        handleFilterTabChange(nextTab.value)
+      }
+    },
+    [activeFilterTab, handleFilterTabChange]
+  )
+  const handleNavigateFilterTabLeft = useCallback(() => {
+    handleFilterTabKeyboardNav(-1)
+  }, [handleFilterTabKeyboardNav])
+  const handleNavigateFilterTabRight = useCallback(() => {
+    handleFilterTabKeyboardNav(1)
+  }, [handleFilterTabKeyboardNav])
+
   // Keep selectedWorktreeId in sync whenever selectedIndex changes (click, keyboard, or external)
   // This fixes the bug where closing a session calls selectProject() which clears selectedWorktreeId,
   // but the dashboard still has a card selected via selectedIndex
@@ -1861,6 +1883,8 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
     selectedIndex,
     onSelectedIndexChange: handleSelectedIndexChange,
     onSelect: handleSelect,
+    onNavigateLeft: handleNavigateFilterTabLeft,
+    onNavigateRight: handleNavigateFilterTabRight,
     enabled: !isModalOpen,
     onSelectionChange: syncSelectionToStore,
   })
