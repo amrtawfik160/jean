@@ -394,7 +394,9 @@ export function FloatingDock() {
       DEFAULT_KEYBINDINGS.open_usage_dropdown) as string
   )
   const isWebAccess = !isNativeApp()
-  const showConnectionIndicator = isWebAccess && !isMobile
+  // StatusStrip already shows the connection dot on desktop. On mobile the
+  // status strip is below the dock + harder to scan, so keep the indicator.
+  const showConnectionIndicator = isWebAccess && isMobile
   const showKeybindingHints = isNativeApp() && !isMobile
   const popoverSide = isMobile || isLg ? 'top' : ('right' as const)
   const popoverAlign = isMobile ? 'end' : ('start' as const)
@@ -515,23 +517,26 @@ export function FloatingDock() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-          >
-            <Command className="size-4" />
-            <span className="sr-only">Command Palette</span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side={popoverSide}>
-          Command Palette{' '}
-          <kbd className="ml-1 text-[0.625rem] opacity-60">⌘K</kbd>
-        </TooltipContent>
-      </Tooltip>
+      {/* Command palette button — only show on mobile; desktop has StatusStrip */}
+      {isMobile && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
+            >
+              <Command className="size-4" />
+              <span className="sr-only">Command Palette</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side={popoverSide}>
+            Command Palette{' '}
+            <kbd className="ml-1 text-[0.625rem] opacity-60">⌘K</kbd>
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {!isMobile && activeUsageEntry && (
         <DropdownMenu open={usageMenuOpen} onOpenChange={setUsageMenuOpen}>

@@ -2363,7 +2363,7 @@ export function ChatWindow({
                         viewportClassName="will-change-scroll"
                         onScroll={handleScroll}
                       >
-                        <div className="mx-auto max-w-7xl px-4 pt-4 pb-6 md:px-6 min-w-0 w-full">
+                        <div className="mx-auto max-w-3xl xl:max-w-4xl 2xl:max-w-5xl px-4 pt-4 pb-6 md:px-6 min-w-0 w-full">
                           <div className="select-text space-y-4 font-mono text-sm min-w-0 break-words overflow-x-hidden">
                             {/* Debug info (enabled via Settings → Experimental → Debug mode) */}
                             {preferences?.debug_mode_enabled &&
@@ -2800,8 +2800,8 @@ export function ChatWindow({
 
                     {/* Input container - full width, centered content */}
                     <div className="bg-background">
-                      <div className="mx-auto max-w-7xl">
-                        <div className="relative sm:mx-auto sm:mb-3 sm:max-w-3xl xl:max-w-4xl">
+                      <div className="mx-auto max-w-3xl xl:max-w-4xl 2xl:max-w-5xl">
+                        <div className="relative sm:mx-auto sm:mb-3">
                           {/* Input area - unified container with textarea and toolbar */}
                           <form
                             ref={formRef}
