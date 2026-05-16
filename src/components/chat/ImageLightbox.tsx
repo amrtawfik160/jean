@@ -53,7 +53,7 @@ export function ImageLightbox({
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent
-          className="!w-screen !h-dvh !max-w-screen !max-h-none !rounded-none p-0 sm:!w-[calc(100vw-4rem)] sm:!max-w-[calc(100vw-4rem)] sm:!h-auto sm:max-h-[85vh] sm:!rounded-lg sm:p-4 bg-background/95 backdrop-blur-sm"
+          className="!w-fit !max-w-[calc(100vw-1rem)] !h-fit !max-h-[calc(100dvh-1rem)] !rounded-lg !p-2 bg-background/95 backdrop-blur-sm"
           showCloseButton={true}
         >
           <VisuallyHidden>
@@ -63,7 +63,7 @@ export function ImageLightbox({
           <img
             src={assetSrc}
             alt={alt}
-            className="max-w-full max-h-[calc(85vh-4rem)] object-contain rounded-md mx-auto"
+            className="block max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] object-contain rounded-md"
           />
         </DialogContent>
       </Dialog>

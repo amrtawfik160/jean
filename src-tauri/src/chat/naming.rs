@@ -505,22 +505,36 @@ fn generate_names(app: &AppHandle, request: &NamingRequest) -> Result<NamingOutp
     Ok(naming_output)
 }
 
-/// Schema for Codex naming output
-const NAMING_SCHEMA: &str = r#"{
-    "type": "object",
-    "properties": {
-        "session_name": {
-            "type": "string",
-            "description": "A short, descriptive name for the session (2-6 words)"
+/// Build the structured-output schema for Codex naming.
+///
+/// Session-only and branch-only prompts must not require fields they did not
+/// ask the model to produce. Requiring both fields for a session-only request
+/// makes Codex structured output fail or fabricate an unrelated branch name.
+fn naming_schema_for_request(request: &NamingRequest) -> String {
+    let required: Vec<&str> = match (request.generate_session_name, request.generate_branch_name) {
+        (true, true) => vec!["session_name", "branch_name"],
+        (true, false) => vec!["session_name"],
+        (false, true) => vec!["branch_name"],
+        (false, false) => Vec::new(),
+    };
+
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "session_name": {
+                "type": "string",
+                "description": "A short, descriptive name for the session (2-6 words)"
+            },
+            "branch_name": {
+                "type": "string",
+                "description": "A git branch name in kebab-case without a type prefix"
+            }
         },
-        "branch_name": {
-            "type": "string",
-            "description": "A git branch name in kebab-case (e.g. feat/add-dark-mode)"
-        }
-    },
-    "required": ["session_name", "branch_name"],
-    "additionalProperties": false
-}"#;
+        "required": required,
+        "additionalProperties": false
+    })
+    .to_string()
+}
 
 /// Generate names using Codex CLI with --output-schema
 fn generate_names_codex(
@@ -530,11 +544,12 @@ fn generate_names_codex(
     request: &NamingRequest,
 ) -> Result<NamingOutput, String> {
     log::trace!("Generating names with Codex CLI using model {model}");
+    let output_schema = naming_schema_for_request(request);
     let json_str = super::codex::execute_one_shot_codex(
         app,
         prompt,
         model,
-        NAMING_SCHEMA,
+        &output_schema,
         Some(&request.worktree_path),
         request.reasoning_effort.as_deref(),
     )?;
@@ -1017,6 +1032,10 @@ fn execute_naming(app: &AppHandle, request: &NamingRequest) {
                             result.new_name
                         );
                         let _ = app.emit_all("session-renamed", &result);
+                        let _ = app.emit_all(
+                            "cache:invalidate",
+                            &serde_json::json!({ "keys": ["sessions"] }),
+                        );
                     }
                     Err(error) => {
                         log::warn!("Session naming storage failed: {}", error.error);
@@ -1094,4 +1113,76 @@ pub fn spawn_naming_task(app: AppHandle, request: NamingRequest) {
     std::thread::spawn(move || {
         execute_naming(&app, &request);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_request(generate_session_name: bool, generate_branch_name: bool) -> NamingRequest {
+        NamingRequest {
+            session_id: "session-1".to_string(),
+            worktree_id: "worktree-1".to_string(),
+            worktree_path: PathBuf::from("/tmp/worktree"),
+            first_message: "fix the session ai naming".to_string(),
+            model: "gpt-5.2-codex".to_string(),
+            existing_branch_names: Vec::new(),
+            generate_session_name,
+            generate_branch_name,
+            custom_session_prompt: None,
+            custom_profile_name: None,
+            backend_override: None,
+            reasoning_effort: None,
+        }
+    }
+
+    fn required_fields(schema: &str) -> Vec<String> {
+        serde_json::from_str::<serde_json::Value>(schema)
+            .expect("schema is valid JSON")
+            .get("required")
+            .and_then(|value| value.as_array())
+            .expect("schema has required array")
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .expect("required field is string")
+                    .to_string()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn codex_session_only_schema_requires_only_session_name() {
+        let schema = naming_schema_for_request(&test_request(true, false));
+
+        assert_eq!(required_fields(&schema), vec!["session_name"]);
+        let parsed: serde_json::Value = serde_json::from_str(&schema).unwrap();
+        assert!(parsed["properties"].get("branch_name").is_some());
+    }
+
+    #[test]
+    fn codex_branch_only_schema_requires_only_branch_name() {
+        let schema = naming_schema_for_request(&test_request(false, true));
+
+        assert_eq!(required_fields(&schema), vec!["branch_name"]);
+    }
+
+    #[test]
+    fn codex_combined_schema_requires_session_and_branch_names() {
+        let schema = naming_schema_for_request(&test_request(true, true));
+
+        assert_eq!(
+            required_fields(&schema),
+            vec!["session_name", "branch_name"]
+        );
+    }
+
+    #[test]
+    fn session_name_validation_sanitizes_punctuation_and_limits_words() {
+        let validated = validate_session_name("Fix: session AI naming, still not working good!")
+            .expect("session name validates");
+
+        assert_eq!(validated, "Fix session AI naming still not");
+    }
 }

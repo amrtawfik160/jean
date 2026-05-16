@@ -47,7 +47,13 @@ const CLAUDE_OAUTH_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const CLAUDE_OAUTH_SCOPES: &str =
     "user:profile user:inference user:sessions:claude_code user:mcp_servers";
 const CLAUDE_USAGE_CACHE_TTL_SECS: u64 = 5 * 60;
+/// Default cooldown after a 429 if Anthropic doesn't send `retry-after`.
+const CLAUDE_USAGE_RATE_LIMIT_COOLDOWN_SECS: u64 = 30 * 60;
 static CLAUDE_USAGE_FETCH_LOCK: OnceLock<AsyncMutex<()>> = OnceLock::new();
+/// Epoch seconds until which Claude usage fetches should be skipped due to a
+/// prior 429. Survives only the lifetime of the process.
+static CLAUDE_USAGE_COOLDOWN_UNTIL: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
 
 fn claude_usage_fetch_lock() -> &'static AsyncMutex<()> {
     CLAUDE_USAGE_FETCH_LOCK.get_or_init(|| AsyncMutex::new(()))
@@ -642,9 +648,108 @@ where
     };
     Ok(match value {
         Value::Number(num) => num.as_u64(),
-        Value::String(s) => s.parse::<u64>().ok(),
+        Value::String(s) => s
+            .parse::<u64>()
+            .ok()
+            .or_else(|| parse_iso8601_epoch_secs(&s)),
         _ => None,
     })
+}
+
+/// Tiny ISO 8601 parser for "YYYY-MM-DDTHH:MM:SS(.fff)?(Z|±HH:MM)?" → epoch seconds (UTC).
+/// Anthropic's `resets_at` is an ISO 8601 string; this lets us decode it without a date crate.
+fn parse_iso8601_epoch_secs(s: &str) -> Option<u64> {
+    if s.len() < 19 {
+        return None;
+    }
+    let year: i64 = s.get(0..4)?.parse().ok()?;
+    let month: i64 = s.get(5..7)?.parse().ok()?;
+    let day: i64 = s.get(8..10)?.parse().ok()?;
+    let hour: i64 = s.get(11..13)?.parse().ok()?;
+    let minute: i64 = s.get(14..16)?.parse().ok()?;
+    let second: i64 = s.get(17..19)?.parse().ok()?;
+
+    // Skip optional fractional seconds
+    let mut idx = 19;
+    let bytes = s.as_bytes();
+    if bytes.get(idx) == Some(&b'.') {
+        idx += 1;
+        while idx < bytes.len() && bytes[idx].is_ascii_digit() {
+            idx += 1;
+        }
+    }
+
+    // Optional timezone offset: Z, +HH:MM, -HH:MM (or without colon)
+    let mut tz_offset_secs: i64 = 0;
+    if let Some(&b) = bytes.get(idx) {
+        if b == b'+' || b == b'-' {
+            let sign: i64 = if b == b'+' { 1 } else { -1 };
+            let oh: i64 = s.get(idx + 1..idx + 3)?.parse().ok()?;
+            let colon = bytes.get(idx + 3) == Some(&b':');
+            let mstart = idx + 3 + if colon { 1 } else { 0 };
+            let om: i64 = s.get(mstart..mstart + 2)?.parse().ok()?;
+            tz_offset_secs = sign * (oh * 3600 + om * 60);
+        }
+    }
+
+    // Days since 1970-01-01 (Howard Hinnant's civil_from_days).
+    let y = if month <= 2 { year - 1 } else { year };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let doy = (153 * (month + (if month > 2 { -3 } else { 9 })) + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146097 + doe - 719468;
+    let total = days * 86400 + hour * 3600 + minute * 60 + second - tz_offset_secs;
+    if total < 0 {
+        return None;
+    }
+    Some(total as u64)
+}
+
+#[cfg(test)]
+mod iso8601_tests {
+    use super::parse_iso8601_epoch_secs;
+
+    #[test]
+    fn parses_z_suffix() {
+        // 2026-05-15T18:00:00Z == 1778868000
+        assert_eq!(
+            parse_iso8601_epoch_secs("2026-05-15T18:00:00Z"),
+            Some(1778868000)
+        );
+    }
+
+    #[test]
+    fn parses_fractional_seconds() {
+        assert_eq!(
+            parse_iso8601_epoch_secs("2026-05-15T18:00:00.123Z"),
+            Some(1778868000)
+        );
+    }
+
+    #[test]
+    fn parses_positive_offset() {
+        // 2026-05-15T20:00:00+02:00 == 1778868000
+        assert_eq!(
+            parse_iso8601_epoch_secs("2026-05-15T20:00:00+02:00"),
+            Some(1778868000)
+        );
+    }
+
+    #[test]
+    fn parses_negative_offset() {
+        // 2026-05-15T13:00:00-05:00 == 1778868000
+        assert_eq!(
+            parse_iso8601_epoch_secs("2026-05-15T13:00:00-05:00"),
+            Some(1778868000)
+        );
+    }
+
+    #[test]
+    fn rejects_garbage() {
+        assert_eq!(parse_iso8601_epoch_secs("not-a-date"), None);
+        assert_eq!(parse_iso8601_epoch_secs(""), None);
+    }
 }
 
 fn build_usage_client() -> Result<reqwest::Client, String> {
@@ -970,6 +1075,17 @@ pub(crate) async fn get_claude_usage_with_source(
         return Ok(cached);
     }
 
+    // Honor an in-flight rate-limit cooldown so we stop hammering Anthropic
+    // after a 429. The cooldown was either set by `retry-after` or our default.
+    let cooldown_until = CLAUDE_USAGE_COOLDOWN_UNTIL.load(std::sync::atomic::Ordering::Relaxed);
+    if cooldown_until > now_secs {
+        let secs_left = cooldown_until - now_secs;
+        return Err(format!(
+            "Claude usage rate-limited by Anthropic. Try again in {}m.",
+            secs_left.div_ceil(60)
+        ));
+    }
+
     let (source, mut credentials) = load_claude_credentials()?;
     let usage_client = build_usage_client()?;
 
@@ -1000,6 +1116,7 @@ pub(crate) async fn get_claude_usage_with_source(
         .bearer_auth(access_token.trim())
         .header(reqwest::header::ACCEPT, "application/json")
         .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .header(reqwest::header::USER_AGENT, "claude-code/2.1.11")
         .header("anthropic-beta", "oauth-2025-04-20")
         .send()
         .await
@@ -1017,6 +1134,7 @@ pub(crate) async fn get_claude_usage_with_source(
                 .bearer_auth(refreshed_token.trim())
                 .header(reqwest::header::ACCEPT, "application/json")
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
+                .header(reqwest::header::USER_AGENT, "claude-code/2.1.11")
                 .header("anthropic-beta", "oauth-2025-04-20")
                 .send()
                 .await
@@ -1029,10 +1147,30 @@ pub(crate) async fn get_claude_usage_with_source(
     {
         return Err("Claude token expired. Run `claude` to log in again.".to_string());
     }
-    if !response.status().is_success() {
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        // Respect Anthropic's `retry-after` header (seconds or HTTP date),
+        // falling back to a 30m cooldown so we don't immediately re-hit 429.
+        let retry_after_secs = response
+            .headers()
+            .get(reqwest::header::RETRY_AFTER)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(CLAUDE_USAGE_RATE_LIMIT_COOLDOWN_SECS);
+        let cooldown_until = now_secs.saturating_add(retry_after_secs);
+        CLAUDE_USAGE_COOLDOWN_UNTIL.store(cooldown_until, std::sync::atomic::Ordering::Relaxed);
+        log::warn!("Claude usage 429 from Anthropic; cooling down for {retry_after_secs}s");
         return Err(format!(
-            "Claude usage request failed (HTTP {}).",
-            response.status()
+            "Claude usage rate-limited by Anthropic. Try again in {}m.",
+            retry_after_secs.div_ceil(60)
+        ));
+    }
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        let snippet = body.chars().take(300).collect::<String>();
+        log::warn!("Claude usage request failed: HTTP {status} body={snippet}");
+        return Err(format!(
+            "Claude usage request failed (HTTP {status}). {snippet}"
         ));
     }
 

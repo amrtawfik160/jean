@@ -62,6 +62,7 @@ import {
 } from '@/services/git-status'
 import { invoke } from '@/lib/transport'
 import { dismissibleToast } from '@/lib/dismissible-toast'
+import { notify } from '@/lib/notifications'
 import { resolveMagicPromptProvider } from '@/types/preferences'
 import type { CreateCommitResponse } from '@/types/projects'
 import {
@@ -311,53 +312,75 @@ export function GitDiffModal({
   )
 
   // Commit selected (or all) files directly from the diff view
-  const [isCommitting, setIsCommitting] = useState(false)
-  const handleCommitFromDiff = useCallback(async () => {
-    if (!diffRequest || isCommitting) return
-    const { gitDiffSelectedFiles, clearGitDiffSelectedFiles } =
-      useUIStore.getState()
-    const specificFiles =
-      gitDiffSelectedFiles.size > 0 ? Array.from(gitDiffSelectedFiles) : null
+  const [commitAction, setCommitAction] = useState<
+    'commit' | 'commitAndPush' | null
+  >(null)
+  const isCommitting = commitAction !== null
+  const handleCommitFromDiff = useCallback(
+    async (push = false) => {
+      if (!diffRequest || commitAction) return
+      const { gitDiffSelectedFiles, clearGitDiffSelectedFiles } =
+        useUIStore.getState()
+      const specificFiles =
+        gitDiffSelectedFiles.size > 0 ? Array.from(gitDiffSelectedFiles) : null
 
-    setIsCommitting(true)
-    const opToast = dismissibleToast.loading(
-      specificFiles
-        ? `Committing ${specificFiles.length} file${specificFiles.length !== 1 ? 's' : ''}...`
-        : 'Committing all changes...'
-    )
-
-    try {
-      const result = await invoke<CreateCommitResponse>(
-        'create_commit_with_ai',
-        {
-          worktreePath: diffRequest.worktreePath,
-          customPrompt: preferences?.magic_prompts?.commit_message,
-          push: false,
-          model: preferences?.magic_prompt_models?.commit_message_model,
-          customProfileName: resolveMagicPromptProvider(
-            preferences?.magic_prompt_providers,
-            'commit_message_provider',
-            preferences?.default_provider
-          ),
-          reasoningEffort:
-            preferences?.magic_prompt_efforts?.commit_message_effort ?? null,
-          specificFiles,
-        }
+      setCommitAction(push ? 'commitAndPush' : 'commit')
+      const opToast = dismissibleToast.loading(
+        push
+          ? specificFiles
+            ? `Committing and pushing ${specificFiles.length} file${specificFiles.length !== 1 ? 's' : ''}...`
+            : 'Committing and pushing all changes...'
+          : specificFiles
+            ? `Committing ${specificFiles.length} file${specificFiles.length !== 1 ? 's' : ''}...`
+            : 'Committing all changes...'
       )
 
-      clearGitDiffSelectedFiles()
-      triggerImmediateGitPoll()
-      // Refresh the diff view to show remaining uncommitted files
-      setSelectedFileIndex(0)
-      loadDiff({ ...diffRequest, type: 'uncommitted' }, true)
+      try {
+        const result = await invoke<CreateCommitResponse>(
+          'create_commit_with_ai',
+          {
+            worktreePath: diffRequest.worktreePath,
+            customPrompt: preferences?.magic_prompts?.commit_message,
+            push,
+            model: preferences?.magic_prompt_models?.commit_message_model,
+            customProfileName: resolveMagicPromptProvider(
+              preferences?.magic_prompt_providers,
+              'commit_message_provider',
+              preferences?.default_provider
+            ),
+            reasoningEffort:
+              preferences?.magic_prompt_efforts?.commit_message_effort ?? null,
+            specificFiles,
+          }
+        )
 
-      opToast.success(result.message.split('\n')[0])
-    } catch (error) {
-      opToast.error(`Failed to commit: ${error}`)
-    } finally {
-      setIsCommitting(false)
-    }
-  }, [diffRequest, isCommitting, preferences, loadDiff])
+        clearGitDiffSelectedFiles()
+        triggerImmediateGitPoll()
+        // Refresh the diff view to show remaining uncommitted files
+        setSelectedFileIndex(0)
+        loadDiff({ ...diffRequest, type: 'uncommitted' }, true)
+
+        const title = push ? 'Committed and pushed' : 'Committed'
+        const message =
+          result.message.split('\n')[0] || 'Pushed existing commits'
+        opToast.success(message)
+        if (push) {
+          notify(title, message, { type: 'success', native: true })
+        }
+      } catch (error) {
+        opToast.error(`Failed to commit: ${error}`)
+        if (push) {
+          notify('Commit and push failed', String(error), {
+            type: 'error',
+            native: true,
+          })
+        }
+      } finally {
+        setCommitAction(null)
+      }
+    },
+    [diffRequest, commitAction, preferences, loadDiff]
+  )
 
   // Cache backend stats per tab so they persist across tab switches
   useEffect(() => {
@@ -436,27 +459,6 @@ export function GitDiffModal({
       }
     }
   }, [diffRequest, loadDiff])
-
-  // Store line selection callbacks per file to maintain stable references
-  const lineSelectedCallbacksRef = useRef<
-    Map<string, (range: SelectedLineRange | null) => void>
-  >(new Map())
-
-  // Get or create a stable callback for a specific file
-  const getLineSelectedCallback = useCallback((fileName: string) => {
-    let callback = lineSelectedCallbacksRef.current.get(fileName)
-    if (!callback) {
-      callback = (range: SelectedLineRange | null) => {
-        setSelectedRange(range)
-        setActiveFileName(range ? fileName : null)
-        if (range) {
-          setShowCommentInput(true)
-        }
-      }
-      lineSelectedCallbacksRef.current.set(fileName, callback)
-    }
-    return callback
-  }, [])
 
   // Add a comment for the current selection (receives comment text from isolated input)
   const handleAddComment = useCallback(
@@ -596,6 +598,9 @@ export function GitDiffModal({
               hunks: [],
               splitLineCount: 0,
               unifiedLineCount: 0,
+              isPartial: true,
+              deletionLines: [],
+              additionLines: [],
             } as FileDiffMetadata,
             fileName: backendFile.path,
             key: `backend-${backendFile.path}`,
@@ -669,6 +674,17 @@ export function GitDiffModal({
     filteredFiles.length > 0 && selectedFileIndex < filteredFiles.length
       ? filteredFiles[selectedFileIndex]
       : null
+
+  const handleSelectedFileLineSelected = useCallback(
+    (range: SelectedLineRange | null) => {
+      setSelectedRange(range)
+      setActiveFileName(range && selectedFile ? selectedFile.fileName : null)
+      if (range) {
+        setShowCommentInput(true)
+      }
+    },
+    [selectedFile]
+  )
 
   // Check if there are any files to display
   const hasFiles = flattenedFiles.length > 0
@@ -866,11 +882,18 @@ export function GitDiffModal({
       ? 'Uncommitted Changes'
       : `Changes vs ${diffRequest?.baseBranch ?? 'main'}`
   const selectedFileCount = gitDiffSelectedFiles.size
-  const commitButtonLabel = isCommitting
-    ? 'Committing…'
-    : selectedFileCount > 0
-      ? `Commit (${selectedFileCount})`
-      : 'Commit'
+  const commitButtonLabel =
+    commitAction === 'commit'
+      ? 'Committing…'
+      : selectedFileCount > 0
+        ? `Commit (${selectedFileCount})`
+        : 'Commit'
+  const commitAndPushButtonLabel =
+    commitAction === 'commitAndPush'
+      ? 'Pushing…'
+      : selectedFileCount > 0
+        ? `Commit & Push (${selectedFileCount})`
+        : 'Commit & Push'
 
   return (
     <>
@@ -1041,28 +1064,52 @@ export function GitDiffModal({
               {activeDiffType === 'uncommitted' &&
                 diff &&
                 filteredFiles.length > 0 && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        disabled={isCommitting}
-                        onClick={handleCommitFromDiff}
-                        className="flex h-7 flex-1 items-center justify-center gap-1.5 px-2.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 rounded-md text-xs font-medium transition-colors sm:flex-none sm:shrink-0 sm:px-3"
-                      >
-                        {isCommitting ? (
-                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                        ) : (
-                          <GitCommitHorizontal className="h-3.5 w-3.5 shrink-0" />
-                        )}
-                        <span>{commitButtonLabel}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {selectedFileCount > 0
-                        ? `Commit ${selectedFileCount} selected file${selectedFileCount !== 1 ? 's' : ''}`
-                        : 'Commit all changes'}
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none sm:shrink-0">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          disabled={isCommitting}
+                          onClick={() => handleCommitFromDiff(false)}
+                          className="flex h-7 flex-1 items-center justify-center gap-1.5 px-2.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 rounded-md text-xs font-medium transition-colors sm:flex-none sm:shrink-0 sm:px-3"
+                        >
+                          {commitAction === 'commit' ? (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                          ) : (
+                            <GitCommitHorizontal className="h-3.5 w-3.5 shrink-0" />
+                          )}
+                          <span>{commitButtonLabel}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {selectedFileCount > 0
+                          ? `Commit ${selectedFileCount} selected file${selectedFileCount !== 1 ? 's' : ''}`
+                          : 'Commit all changes'}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          disabled={isCommitting}
+                          onClick={() => handleCommitFromDiff(true)}
+                          className="flex h-7 flex-1 items-center justify-center gap-1.5 px-2.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 rounded-md text-xs font-medium transition-colors sm:flex-none sm:shrink-0 sm:px-3"
+                        >
+                          {commitAction === 'commitAndPush' ? (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                          ) : (
+                            <GitCommitHorizontal className="h-3.5 w-3.5 shrink-0" />
+                          )}
+                          <span>{commitAndPushButtonLabel}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {selectedFileCount > 0
+                          ? `Commit and push ${selectedFileCount} selected file${selectedFileCount !== 1 ? 's' : ''}`
+                          : 'Commit and push all changes'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 )}
               {/* Mobile sidebar toggle */}
               {isMobile && hasFiles && activeDiffType !== 'commits' && (
@@ -1330,9 +1377,7 @@ export function GitDiffModal({
                                 'github-light'
                               }
                               diffStyle={diffStyle}
-                              onLineSelected={getLineSelectedCallback(
-                                selectedFile.fileName
-                              )}
+                              onLineSelected={handleSelectedFileLineSelected}
                               onRemoveComment={handleRemoveComment}
                             />
                           </div>
@@ -1533,9 +1578,7 @@ export function GitDiffModal({
                                   'github-light'
                                 }
                                 diffStyle={diffStyle}
-                                onLineSelected={getLineSelectedCallback(
-                                  selectedFile.fileName
-                                )}
+                                onLineSelected={handleSelectedFileLineSelected}
                                 onRemoveComment={handleRemoveComment}
                               />
                             </div>

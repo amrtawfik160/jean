@@ -13,6 +13,7 @@ import { useChatStore } from '@/store/chat-store'
 import { useUIStore } from '@/store/ui-store'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { TerminalStatusIndicator } from '@/hooks/useWorktreeTerminalStatus'
+import { SessionTypeIcon } from '@/components/chat/SessionTypeIcon'
 import { WorktreeContextMenu } from './WorktreeContextMenu'
 import { useRenameWorktree } from '@/services/projects'
 import { useSessions } from '@/services/chat'
@@ -682,6 +683,10 @@ export function WorktreeItem({
                       status={config.indicatorStatus}
                       variant={config.indicatorVariant}
                       className="h-1.5 w-1.5 shrink-0"
+                    />
+                    <SessionTypeIcon
+                      session={card.session}
+                      className="h-3 w-3"
                     />
                     <span className="truncate text-xs">
                       {card.session.name || 'Untitled'}

@@ -77,6 +77,22 @@ pub async fn list_native_cli_sessions(
     ))
 }
 
+pub fn latest_native_session_title(worktree_path: &str, backend: &str) -> Option<String> {
+    let sessions = load_native_sessions_uncached(worktree_path, backend).ok()?;
+    sessions
+        .into_iter()
+        .filter_map(|session| {
+            let title = session.title.trim().to_string();
+            if title.is_empty() {
+                None
+            } else {
+                Some((session.updated_at, title))
+            }
+        })
+        .max_by_key(|(updated_at, _)| *updated_at)
+        .map(|(_, title)| title)
+}
+
 fn get_cached_native_sessions(
     worktree_path: &str,
     backend: &str,

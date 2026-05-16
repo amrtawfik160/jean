@@ -11,13 +11,13 @@ import { cn } from '@/lib/utils'
  */
 const buttonVariants = cva(
   cn(
-    "relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-medium",
-    "transition-[background-color,color,border-color,box-shadow,transform] duration-150",
-    "active:scale-[0.98] disabled:active:scale-100",
-    "disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed",
+    'relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-medium',
+    'transition-[background-color,color,border-color,box-shadow,transform] duration-150',
+    'active:scale-[0.98] disabled:active:scale-100',
+    'disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
     "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0",
-    "outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    "aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer"
+    'outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    'aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer'
   ),
   {
     variants: {

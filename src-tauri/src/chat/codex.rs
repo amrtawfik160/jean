@@ -79,6 +79,15 @@ struct ToolBlockEvent {
 }
 
 #[derive(serde::Serialize, Clone)]
+struct TokenUsageEvent {
+    session_id: String,
+    worktree_id: String,
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_input_tokens: u64,
+}
+
+#[derive(serde::Serialize, Clone)]
 struct ThinkingEvent {
     session_id: String,
     worktree_id: String,
@@ -2029,23 +2038,39 @@ fn process_server_notification(
             }
         }
         "thread/tokenUsage/updated" => {
-            // Extract usage data
+            // Extract usage data and broadcast it so the context popover can
+            // update live, before the run finishes and persists usage.
             if let Some(token_usage) = params.get("tokenUsage") {
+                let input_tokens = token_usage
+                    .get("inputTokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let output_tokens = token_usage
+                    .get("outputTokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let cache_read_input_tokens = token_usage
+                    .get("cachedInputTokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+
                 *usage = Some(UsageData {
-                    input_tokens: token_usage
-                        .get("inputTokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0),
-                    output_tokens: token_usage
-                        .get("outputTokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0),
-                    cache_read_input_tokens: token_usage
-                        .get("cachedInputTokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0),
+                    input_tokens,
+                    output_tokens,
+                    cache_read_input_tokens,
                     cache_creation_input_tokens: 0,
                 });
+
+                let _ = app.emit_all(
+                    "chat:token_usage",
+                    &TokenUsageEvent {
+                        session_id: session_id.to_string(),
+                        worktree_id: worktree_id.to_string(),
+                        input_tokens,
+                        output_tokens,
+                        cache_read_input_tokens,
+                    },
+                );
             }
         }
         "item/reasoning/textDelta" | "item/reasoning/summaryTextDelta" => {
@@ -3184,21 +3209,34 @@ fn process_codex_event(
         }
         "turn.completed" => {
             if let Some(usage_obj) = msg.get("usage") {
+                let input_tokens = usage_obj
+                    .get("input_tokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let output_tokens = usage_obj
+                    .get("output_tokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let cache_read_input_tokens = usage_obj
+                    .get("cached_input_tokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
                 *usage = Some(UsageData {
-                    input_tokens: usage_obj
-                        .get("input_tokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0),
-                    output_tokens: usage_obj
-                        .get("output_tokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0),
-                    cache_read_input_tokens: usage_obj
-                        .get("cached_input_tokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0),
+                    input_tokens,
+                    output_tokens,
+                    cache_read_input_tokens,
                     cache_creation_input_tokens: 0,
                 });
+                let _ = app.emit_all(
+                    "chat:token_usage",
+                    &TokenUsageEvent {
+                        session_id: session_id.to_string(),
+                        worktree_id: worktree_id.to_string(),
+                        input_tokens,
+                        output_tokens,
+                        cache_read_input_tokens,
+                    },
+                );
             }
             *completed = true;
             log::trace!("Codex turn completed for session: {session_id}");

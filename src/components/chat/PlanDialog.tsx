@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileText, Pencil, RotateCcw } from '@/components/icons'
+import { createPatch } from 'diff'
+import { FileText, GitMerge, Pencil, RotateCcw } from '@/components/icons'
 import { invoke } from '@/lib/transport'
 import { readPlanFile } from '@/services/chat'
 import { usePreferences } from '@/services/preferences'
@@ -25,6 +26,13 @@ import {
   DropdownMenuShortcut,
 } from '@/components/ui/dropdown-menu'
 import { formatShortcutDisplay, DEFAULT_KEYBINDINGS } from '@/types/keybindings'
+import { useInstalledBackends } from '@/hooks/useInstalledBackends'
+import {
+  PlanExecutionPicker,
+  defaultPlanExecutionOverride,
+  type PlanExecutionOverride,
+} from './PlanExecutionPicker'
+import type { CliBackend } from '@/types/preferences'
 
 export interface ApprovalContext {
   worktreeId: string
@@ -39,8 +47,11 @@ interface PlanDialogBaseProps {
   editable?: boolean
   disabled?: boolean
   approvalContext?: ApprovalContext
-  onApprove?: (updatedPlan: string) => void
-  onApproveYolo?: (updatedPlan: string) => void
+  onApprove?: (updatedPlan: string, override?: PlanExecutionOverride) => void
+  onApproveYolo?: (
+    updatedPlan: string,
+    override?: PlanExecutionOverride
+  ) => void
   onClearContextApprove?: (updatedPlan: string) => void
   onClearContextBuildApprove?: (updatedPlan: string) => void
   onWorktreeBuildApprove?: (updatedPlan: string) => void
@@ -88,6 +99,24 @@ export function PlanDialog({
   const buildLabel = resolveApprovalLabel('build', preferences, sessionBackend)
   const yoloLabel = resolveApprovalLabel('yolo', preferences, sessionBackend)
 
+  const { installedBackends } = useInstalledBackends({ enabled: isOpen })
+
+  const initialOverride = useMemo<PlanExecutionOverride>(() => {
+    const fallback: CliBackend =
+      (sessionBackend as CliBackend | null) ??
+      (preferences?.default_backend as CliBackend | undefined) ??
+      'claude'
+    return defaultPlanExecutionOverride(fallback)
+  }, [sessionBackend, preferences?.default_backend])
+
+  const [execOverride, setExecOverride] =
+    useState<PlanExecutionOverride>(initialOverride)
+
+  // Reset picker when the dialog opens so it reflects the current session.
+  useEffect(() => {
+    if (isOpen) setExecOverride(initialOverride)
+  }, [isOpen, initialOverride])
+
   const { data: fetchedContent, isLoading } = useQuery({
     queryKey: ['planFile', filePath],
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -100,6 +129,18 @@ export function PlanDialog({
   const originalContent = inlineContent ?? fetchedContent ?? ''
   const [editedContent, setEditedContent] = useState('')
   const [isEditMode, setIsEditMode] = useState(false)
+
+  const [showDiff, setShowDiff] = useState(false)
+  useEffect(() => {
+    if (!isOpen) setShowDiff(false)
+  }, [isOpen])
+
+  const diffText = useMemo(() => {
+    if (!showDiff) return ''
+    return createPatch('plan.md', originalContent, editedContent, '', '', {
+      context: 3,
+    })
+  }, [showDiff, originalContent, editedContent])
 
   // Sync edited content when original changes or dialog opens
   useEffect(() => {
@@ -151,15 +192,15 @@ export function PlanDialog({
 
   const handleApprove = useCallback(() => {
     // File is auto-saved, just call the approve callback
-    onApprove?.(editedContent)
+    onApprove?.(editedContent, execOverride)
     onClose()
-  }, [editedContent, onApprove, onClose])
+  }, [editedContent, onApprove, onClose, execOverride])
 
   const handleApproveYolo = useCallback(() => {
     // File is auto-saved, just call the approve callback
-    onApproveYolo?.(editedContent)
+    onApproveYolo?.(editedContent, execOverride)
     onClose()
-  }, [editedContent, onApproveYolo, onClose])
+  }, [editedContent, onApproveYolo, onClose, execOverride])
 
   const handleClearContextApprove = useCallback(() => {
     onClearContextApprove?.(editedContent)
@@ -278,7 +319,34 @@ export function PlanDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {editable && isEditMode ? (
+        {editable && showDiff ? (
+          // Diff mode: unified patch view of edits vs original
+          <ScrollArea className="flex-1 min-h-0 -mx-6 px-6 select-text">
+            {hasChanges ? (
+              <pre className="font-mono text-xs leading-snug whitespace-pre-wrap">
+                {diffText.split('\n').map((line, i) => {
+                  const className =
+                    line.startsWith('+') && !line.startsWith('+++')
+                      ? 'text-success'
+                      : line.startsWith('-') && !line.startsWith('---')
+                        ? 'text-destructive'
+                        : line.startsWith('@@')
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
+                  return (
+                    <div key={i} className={className}>
+                      {line || ' '}
+                    </div>
+                  )
+                })}
+              </pre>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                No changes yet — edit the plan to see a diff here.
+              </div>
+            )}
+          </ScrollArea>
+        ) : editable && isEditMode ? (
           // Edit mode: textarea
           <Textarea
             value={editedContent}
@@ -306,28 +374,44 @@ export function PlanDialog({
         )}
 
         {editable && (
-          <DialogFooter className="shrink-0 border-t pt-4 -mx-6 px-6 mt-4 sm:justify-between">
-            {/* Left side: Edit or Reset button */}
-            {isEditMode ? (
+          <div className="shrink-0 -mx-6 px-6 pt-4 mt-4 border-t flex items-center justify-end">
+            <PlanExecutionPicker
+              installedBackends={installedBackends}
+              value={execOverride}
+              onChange={setExecOverride}
+              disabled={!canApprove}
+            />
+          </div>
+        )}
+
+        {editable && (
+          <DialogFooter className="shrink-0 pt-3 sm:justify-between">
+            {/* Left side: Edit / Reset / Diff buttons */}
+            <div className="flex items-center gap-1 sm:mr-auto">
+              {isEditMode ? (
+                <Button
+                  variant="ghost"
+                  onClick={handleReset}
+                  disabled={!hasChanges}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={() => setIsEditMode(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
               <Button
-                variant="ghost"
-                onClick={handleReset}
+                variant={showDiff ? 'secondary' : 'ghost'}
+                onClick={() => setShowDiff(d => !d)}
                 disabled={!hasChanges}
-                className="sm:mr-auto"
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset
+                <GitMerge className="h-4 w-4 mr-2" />
+                {showDiff ? 'Hide diff' : 'Diff'}
               </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                onClick={() => setIsEditMode(true)}
-                className="sm:mr-auto"
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            )}
+            </div>
 
             {/* Right side: Approve + Auto split buttons */}
             <div className="flex gap-2">

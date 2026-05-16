@@ -218,8 +218,13 @@ export function NativeCliSessionsModal({
   }, [filteredNativeSessions, filteredSessions, normalizedSearch])
 
   const prepareCommandArgs = useCallback(
-    async (sessionId: string): Promise<string[]> => {
+    async (
+      sessionId: string,
+      existingArgs: string[] = []
+    ): Promise<string[]> => {
       if (!backend) return []
+      const sourceSessionId =
+        useChatStore.getState().activeSessionIds[worktreeId]
       try {
         const prepared = await invoke<PreparedBackendTerminalContext>(
           'prepare_backend_terminal_context',
@@ -227,12 +232,16 @@ export function NativeCliSessionsModal({
             sessionId,
             worktreeId,
             backend,
+            sourceSessionId:
+              sourceSessionId && sourceSessionId !== sessionId
+                ? sourceSessionId
+                : undefined,
           }
         )
-        return prepared.commandArgs
+        return [...prepared.commandArgs, ...existingArgs]
       } catch (error) {
         console.error('Failed to prepare backend terminal context:', error)
-        return []
+        return existingArgs
       }
     },
     [backend, worktreeId]
@@ -253,11 +262,10 @@ export function NativeCliSessionsModal({
 
         let terminalId = existingTerminal?.id
         if (!terminalId) {
-          const commandArgs =
-            session.terminal_command_args &&
-            session.terminal_command_args.length > 0
-              ? session.terminal_command_args
-              : await prepareCommandArgs(session.id)
+          const commandArgs = await prepareCommandArgs(
+            session.id,
+            session.terminal_command_args ?? []
+          )
           terminalId = terminalStore.addTerminal(
             worktreeId,
             session.terminal_command ?? command,

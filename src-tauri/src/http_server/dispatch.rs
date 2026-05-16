@@ -1645,11 +1645,14 @@ pub async fn dispatch_command(
             let session_id: String = field(&args, "sessionId", "session_id")?;
             let worktree_id: String = field(&args, "worktreeId", "worktree_id")?;
             let backend: String = from_field(&args, "backend")?;
+            let source_session_id: Option<String> =
+                field_opt(&args, "sourceSessionId", "source_session_id")?;
             let result = crate::terminal::prepare_backend_terminal_context(
                 app.clone(),
                 session_id,
                 worktree_id,
                 backend,
+                source_session_id,
             )
             .await?;
             to_value(result)
@@ -1683,6 +1686,11 @@ pub async fn dispatch_command(
             let result = crate::terminal::get_run_scripts(parsed.worktree_path).await;
             to_value(result)
         }
+        "get_package_json_scripts" => {
+            let project_path: String = field(&args, "projectPath", "project_path")?;
+            let result = crate::terminal::get_package_json_scripts(project_path).await;
+            to_value(result)
+        }
         "get_ports" => {
             let parsed = parse_worktree_path_args(&args)?;
             let result = crate::terminal::get_ports(parsed.worktree_path).await;
@@ -1690,6 +1698,69 @@ pub async fn dispatch_command(
         }
         "get_terminal_listening_ports" => {
             let result = crate::terminal::get_terminal_listening_ports().await;
+            to_value(result)
+        }
+        "get_terminal_buffer" => {
+            let terminal_id: String = field(&args, "terminalId", "terminal_id")?;
+            let max_bytes: Option<usize> = field_opt(&args, "maxBytes", "max_bytes")?;
+            let strip_ansi_codes: Option<bool> =
+                field_opt(&args, "stripAnsiCodes", "strip_ansi_codes")?;
+            let result =
+                crate::terminal::get_terminal_buffer(terminal_id, max_bytes, strip_ansi_codes)
+                    .await?;
+            to_value(result)
+        }
+        "ask_terminal_ai" => {
+            let terminal_id: String = field(&args, "terminalId", "terminal_id")?;
+            let question: String = from_field(&args, "question")?;
+            let worktree_path: Option<String> = field_opt(&args, "worktreePath", "worktree_path")?;
+            let worktree_id: Option<String> = field_opt(&args, "worktreeId", "worktree_id")?;
+            let backend: Option<String> = from_field_opt(&args, "backend")?;
+            let model: Option<String> = from_field_opt(&args, "model")?;
+            let reasoning_effort: Option<String> =
+                field_opt(&args, "reasoningEffort", "reasoning_effort")?;
+            let custom_profile_name: Option<String> =
+                field_opt(&args, "customProfileName", "custom_profile_name")?;
+            let result = crate::terminal::ask_terminal_ai(
+                app.clone(),
+                terminal_id,
+                question,
+                worktree_path,
+                worktree_id,
+                backend,
+                model,
+                reasoning_effort,
+                custom_profile_name,
+            )
+            .await?;
+            to_value(result)
+        }
+        "suggest_terminal_command" => {
+            let terminal_id: String = field(&args, "terminalId", "terminal_id")?;
+            let partial_input: String = field(&args, "partialInput", "partial_input")?;
+            let recent_commands: Option<Vec<String>> =
+                field_opt(&args, "recentCommands", "recent_commands")?;
+            let worktree_path: Option<String> = field_opt(&args, "worktreePath", "worktree_path")?;
+            let worktree_id: Option<String> = field_opt(&args, "worktreeId", "worktree_id")?;
+            let backend: Option<String> = from_field_opt(&args, "backend")?;
+            let model: Option<String> = from_field_opt(&args, "model")?;
+            let reasoning_effort: Option<String> =
+                field_opt(&args, "reasoningEffort", "reasoning_effort")?;
+            let custom_profile_name: Option<String> =
+                field_opt(&args, "customProfileName", "custom_profile_name")?;
+            let result = crate::terminal::suggest_terminal_command(
+                app.clone(),
+                terminal_id,
+                partial_input,
+                recent_commands,
+                worktree_path,
+                worktree_id,
+                backend,
+                model,
+                reasoning_effort,
+                custom_profile_name,
+            )
+            .await?;
             to_value(result)
         }
 
@@ -1806,6 +1877,22 @@ pub async fn dispatch_command(
                 enabled_mcp_servers,
                 selected_execution_mode,
                 table_checked_rows,
+            )
+            .await?;
+            emit_cache_invalidation(app, &["sessions"]);
+            Ok(Value::Null)
+        }
+        "update_native_terminal_session_run_status" => {
+            let worktree_id: String = field(&args, "worktreeId", "worktree_id")?;
+            let worktree_path: String = field(&args, "worktreePath", "worktree_path")?;
+            let session_id: String = field(&args, "sessionId", "session_id")?;
+            let status: crate::chat::types::RunStatus = field(&args, "status", "status")?;
+            crate::chat::update_native_terminal_session_run_status(
+                app.clone(),
+                worktree_id,
+                worktree_path,
+                session_id,
+                status,
             )
             .await?;
             emit_cache_invalidation(app, &["sessions"]);

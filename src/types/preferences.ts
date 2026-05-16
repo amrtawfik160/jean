@@ -933,6 +933,7 @@ export interface AppPreferences {
   archive_retention_days: number // Days to keep archived items (0 = never delete)
   syntax_theme_dark: SyntaxTheme // Syntax highlighting theme for dark mode
   syntax_theme_light: SyntaxTheme // Syntax highlighting theme for light mode
+  markdown_color_highlights_enabled: boolean // Color-tint markdown headings/bold/italic/inline-code in previews
   parallel_execution_prompt_enabled: boolean // Add system prompt to encourage parallel sub-agent execution
   compact_chat_view_enabled: boolean // Collapse intermediate tool calls/replies into a single ticker line, only showing the latest activity
   magic_prompts: MagicPrompts // Customizable prompts for AI-powered features
@@ -1680,6 +1681,7 @@ export const defaultPreferences: AppPreferences = {
   archive_retention_days: 7,
   syntax_theme_dark: 'vitesse-black',
   syntax_theme_light: 'github-light',
+  markdown_color_highlights_enabled: true,
   parallel_execution_prompt_enabled: true, // Default: enabled
   compact_chat_view_enabled: false, // Default: disabled (experimental)
   magic_prompts: DEFAULT_MAGIC_PROMPTS,

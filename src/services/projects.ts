@@ -2154,6 +2154,26 @@ export function useRunScripts(worktreePath: string | null) {
   })
 }
 
+export interface PackageJsonScriptSuggestion {
+  name: string
+  command: string
+  runCommand: string
+}
+
+export function usePackageJsonScripts(projectPath: string | null) {
+  return useQuery<PackageJsonScriptSuggestion[]>({
+    queryKey: ['package-json-scripts', projectPath],
+    queryFn: async () => {
+      if (!isTauri() || !projectPath) return []
+      return invoke<PackageJsonScriptSuggestion[]>('get_package_json_scripts', {
+        projectPath,
+      })
+    },
+    enabled: !!projectPath,
+    staleTime: 30_000,
+  })
+}
+
 /**
  * Hook to get configured ports from jean.json for a worktree.
  * Returns PortEntry[] (empty = none configured).

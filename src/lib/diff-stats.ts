@@ -13,8 +13,8 @@ export function getHunkLineStats(
     (stats, hunk) => {
       for (const content of hunk.hunkContent) {
         if (content.type !== 'change') continue
-        stats.additions += content.additions.length
-        stats.deletions += content.deletions.length
+        stats.additions += content.additions
+        stats.deletions += content.deletions
       }
       return stats
     },

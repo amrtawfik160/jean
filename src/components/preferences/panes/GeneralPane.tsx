@@ -215,7 +215,7 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
   const { data: cliStatus, isLoading: isCliLoading } = useClaudeCliStatus()
   const isPathSource = preferences?.claude_cli_source === 'path'
   const { data: claudeVersions, isLoading: isClaudeVersionsLoading } =
-    useAvailableCliVersions({ enabled: isPathSource && !!cliStatus?.installed })
+    useAvailableCliVersions({ enabled: !!cliStatus?.installed })
   const claudeLatestStable = claudeVersions?.find(v => !v.prerelease)
   const claudeHasUpdate =
     !!cliStatus?.version &&
@@ -226,7 +226,7 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
     useCursorCliStatus()
   const isGhPathSource = preferences?.gh_cli_source === 'path'
   const { data: ghVersions, isLoading: isGhVersionsLoading } =
-    useAvailableGhVersions({ enabled: isGhPathSource && !!ghStatus?.installed })
+    useAvailableGhVersions({ enabled: !!ghStatus?.installed })
   const ghLatestStable = ghVersions?.find(v => !v.prerelease)
   const ghHasUpdate =
     !!ghStatus?.version &&
@@ -236,7 +236,7 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
   const isCodexPathSource = preferences?.codex_cli_source === 'path'
   const { data: codexVersions, isLoading: isCodexVersionsLoading } =
     useAvailableCodexVersions({
-      enabled: isCodexPathSource && !!codexStatus?.installed,
+      enabled: !!codexStatus?.installed,
     })
   const codexLatestStable = codexVersions?.find(v => !v.prerelease)
   const codexHasUpdate =
@@ -262,7 +262,7 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
   const isOpencodePathSource = preferences?.opencode_cli_source === 'path'
   const { data: opencodeVersions, isLoading: isOpencodeVersionsLoading } =
     useAvailableOpencodeVersions({
-      enabled: isOpencodePathSource && !!opencodeStatus?.installed,
+      enabled: !!opencodeStatus?.installed,
     })
   const opencodeLatestStable = opencodeVersions?.find(v => !v.prerelease)
   const opencodeHasUpdate =
@@ -1134,19 +1134,19 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
               {isCliLoading ? (
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               ) : cliStatus?.installed ? (
-                isPathSource ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {cliStatus.version ?? 'Installed'}
-                    </span>
-                    {isClaudeVersionsLoading ? (
-                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!claudeHasUpdate}
-                        onClick={() => {
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">
+                    {cliStatus.version ?? 'Installed'}
+                  </span>
+                  {isClaudeVersionsLoading ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!claudeHasUpdate}
+                      onClick={() => {
+                        if (isPathSource) {
                           const action = getPathUpdateAction(
                             cliStatus.path,
                             pathDetection?.package_manager,
@@ -1160,26 +1160,18 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
                               action[1],
                               'update'
                             )
-                          } else {
-                            openCliUpdateModal('claude')
+                            return
                           }
-                        }}
-                      >
-                        {claudeHasUpdate
-                          ? `Update to ${claudeLatestStable?.version}`
-                          : 'Up to date'}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-40 justify-between"
-                    onClick={() => openCliUpdateModal('claude')}
-                  >
-                    {cliStatus.version ?? 'Installed'}
-                  </Button>
-                )
+                        }
+                        openCliUpdateModal('claude')
+                      }}
+                    >
+                      {claudeHasUpdate
+                        ? `Update to ${claudeLatestStable?.version}`
+                        : 'Up to date'}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <Button
                   className="w-full sm:w-40"
@@ -1293,19 +1285,19 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
               {isGhLoading ? (
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               ) : ghStatus?.installed ? (
-                isGhPathSource ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {ghStatus.version ?? 'Installed'}
-                    </span>
-                    {isGhVersionsLoading ? (
-                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!ghHasUpdate}
-                        onClick={() => {
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">
+                    {ghStatus.version ?? 'Installed'}
+                  </span>
+                  {isGhVersionsLoading ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!ghHasUpdate}
+                      onClick={() => {
+                        if (isGhPathSource) {
                           const action = getPathUpdateAction(
                             ghStatus.path,
                             ghPathDetection?.package_manager,
@@ -1319,26 +1311,18 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
                               action[1],
                               'update'
                             )
-                          } else {
-                            openCliUpdateModal('gh')
+                            return
                           }
-                        }}
-                      >
-                        {ghHasUpdate
-                          ? `Update to ${ghLatestStable?.version}`
-                          : 'Up to date'}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-40 justify-between"
-                    onClick={() => openCliUpdateModal('gh')}
-                  >
-                    {ghStatus.version ?? 'Installed'}
-                  </Button>
-                )
+                        }
+                        openCliUpdateModal('gh')
+                      }}
+                    >
+                      {ghHasUpdate
+                        ? `Update to ${ghLatestStable?.version}`
+                        : 'Up to date'}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <Button
                   className="w-full sm:w-40"
@@ -1627,19 +1611,19 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
               {isCodexLoading ? (
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               ) : codexStatus?.installed ? (
-                isCodexPathSource ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {codexStatus.version ?? 'Installed'}
-                    </span>
-                    {isCodexVersionsLoading ? (
-                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!codexHasUpdate}
-                        onClick={() => {
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">
+                    {codexStatus.version ?? 'Installed'}
+                  </span>
+                  {isCodexVersionsLoading ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!codexHasUpdate}
+                      onClick={() => {
+                        if (isCodexPathSource) {
                           const action = getPathUpdateAction(
                             codexStatus.path,
                             codexPathDetection?.package_manager,
@@ -1655,26 +1639,18 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
                               action[1],
                               'update'
                             )
-                          } else {
-                            openCliUpdateModal('codex')
+                            return
                           }
-                        }}
-                      >
-                        {codexHasUpdate
-                          ? `Update to ${codexLatestStable?.version}`
-                          : 'Up to date'}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-40 justify-between"
-                    onClick={() => openCliUpdateModal('codex')}
-                  >
-                    {codexStatus.version ?? 'Installed'}
-                  </Button>
-                )
+                        }
+                        openCliUpdateModal('codex')
+                      }}
+                    >
+                      {codexHasUpdate
+                        ? `Update to ${codexLatestStable?.version}`
+                        : 'Up to date'}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <Button
                   className="w-full sm:w-40"
@@ -1799,19 +1775,19 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
               {isOpenCodeLoading ? (
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               ) : opencodeStatus?.installed ? (
-                isOpencodePathSource ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {opencodeStatus.version ?? 'Installed'}
-                    </span>
-                    {isOpencodeVersionsLoading ? (
-                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!opencodeHasUpdate}
-                        onClick={() => {
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">
+                    {opencodeStatus.version ?? 'Installed'}
+                  </span>
+                  {isOpencodeVersionsLoading ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!opencodeHasUpdate}
+                      onClick={() => {
+                        if (isOpencodePathSource) {
                           const action = getPathUpdateAction(
                             opencodeStatus.path,
                             opencodePathDetection?.package_manager,
@@ -1825,26 +1801,18 @@ export const GeneralPane: React.FC<{ scope?: PreferencesPaneScope }> = ({
                               action[1],
                               'update'
                             )
-                          } else {
-                            openCliUpdateModal('opencode')
+                            return
                           }
-                        }}
-                      >
-                        {opencodeHasUpdate
-                          ? `Update to ${opencodeLatestStable?.version}`
-                          : 'Up to date'}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-40 justify-between"
-                    onClick={() => openCliUpdateModal('opencode')}
-                  >
-                    {opencodeStatus.version ?? 'Installed'}
-                  </Button>
-                )
+                        }
+                        openCliUpdateModal('opencode')
+                      }}
+                    >
+                      {opencodeHasUpdate
+                        ? `Update to ${opencodeLatestStable?.version}`
+                        : 'Up to date'}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <Button
                   className="w-full sm:w-40"

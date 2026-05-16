@@ -36,7 +36,7 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     data-slot="dialog-overlay"
     className={cn(
-      'fixed inset-0 z-[70] bg-background/70 backdrop-blur-md',
+      'glass-overlay fixed inset-0 z-[70]',
       'data-[state=open]:animate-in data-[state=closed]:animate-out',
       'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       'duration-150',
@@ -72,10 +72,8 @@ const DialogContent = React.forwardRef<
         ref={ref}
         data-slot="dialog-content"
         className={cn(
-          'fixed top-[50%] left-[50%] z-[70] grid w-full max-w-[calc(100%-2rem)] sm:max-w-lg',
-          'translate-x-[-50%] translate-y-[-50%] gap-4 p-6',
-          'rounded-xl border border-border/70 bg-popover',
-          'shadow-[0_20px_60px_-15px_oklch(0_0_0/0.6),0_0_0_1px_oklch(0.27_0.01_270/0.6)]',
+          'glass-loud fixed top-[50%] left-[50%] z-[70] grid w-full max-w-[calc(100%-2rem)] sm:max-w-lg',
+          'translate-x-[-50%] translate-y-[-50%] gap-4 p-6 rounded-xl',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -138,7 +136,10 @@ function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn('flex flex-col gap-1.5 text-center sm:text-left', className)}
+      className={cn(
+        'flex flex-col gap-1.5 text-center sm:text-left',
+        className
+      )}
       {...props}
     />
   )

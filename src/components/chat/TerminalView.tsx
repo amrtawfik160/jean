@@ -1,5 +1,6 @@
-import { useEffect, useRef, useCallback, useMemo, memo } from 'react'
-import { Plus, X, Minus, Terminal, ChevronUp } from 'lucide-react'
+import { useEffect, useRef, useCallback, useMemo, memo, useState } from 'react'
+import { Plus, X, Minus, Terminal, ChevronUp, WandSparkles } from 'lucide-react'
+import { Sparkles } from '@/components/icons'
 import { invoke } from '@/lib/transport'
 import { useTerminal } from '@/hooks/useTerminal'
 import {
@@ -15,6 +16,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { formatShortcutDisplay } from '@/types/keybindings'
 import { cn } from '@/lib/utils'
 import { MODAL_TERMINAL_SECONDARY_ROW_CLASS } from './modal-terminal-layout'
+import { TerminalAIBar, type TerminalAIMode } from './TerminalAIBar'
 import '@xterm/xterm/css/xterm.css'
 
 const EMPTY_TERMINALS: TerminalInstance[] = []
@@ -169,6 +171,19 @@ export function TerminalView({
     runningTerminals.has(terminal.id)
   )
 
+  // AI overlay state — opens above the active terminal tab.
+  const [aiBarOpen, setAiBarOpen] = useState(false)
+  const [aiBarMode, setAiBarMode] = useState<TerminalAIMode>('ask')
+
+  const openAiBar = useCallback((mode: TerminalAIMode) => {
+    setAiBarMode(mode)
+    setAiBarOpen(true)
+  }, [])
+
+  const closeAiBar = useCallback(() => {
+    setAiBarOpen(false)
+  }, [])
+
   const {
     addTerminal,
     removeTerminal,
@@ -235,6 +250,39 @@ export function TerminalView({
     // Dispose side/drawer terminal tabs only; session terminals are independent.
     disposePanelWorktreeTerminals(worktreeId)
   }, [worktreeId])
+
+  // Open the AI bar with mod+i (ask) and mod+semicolon (suggest). Capture
+  // phase so we beat xterm.js to Ctrl+I (which would otherwise be Tab) and
+  // beat any element handlers. Scoped to the active worktree's panel with at
+  // least one terminal tab; ignored while another editable input is focused
+  // so the user can type a literal "i" in chat without surprises.
+  useEffect(() => {
+    if (isCollapsed || !isWorktreeActive || terminals.length === 0) return
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod || e.shiftKey || e.altKey) return
+      const isAsk = e.key === 'i' || e.key === 'I'
+      const isSuggest = e.key === ';'
+      if (!isAsk && !isSuggest) return
+
+      const target = e.target as HTMLElement | null
+      const inTerminal =
+        target?.closest('[data-terminal-emulator]') != null ||
+        target?.closest('[data-testid="terminal-ai-bar"]') != null
+      const inEditable =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target as HTMLElement | null)?.isContentEditable === true
+      if (!inTerminal && inEditable) return
+
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      openAiBar(isAsk ? 'ask' : 'suggest')
+    }
+    document.addEventListener('keydown', handler, { capture: true })
+    return () =>
+      document.removeEventListener('keydown', handler, { capture: true })
+  }, [isCollapsed, isWorktreeActive, terminals.length, openAiBar])
 
   // When collapsed, show collapsed bar but keep terminals mounted (hidden) to preserve state
   if (isCollapsed) {
@@ -355,6 +403,32 @@ export function TerminalView({
         {/* Spacer */}
         <div className="flex-1" />
 
+        {/* AI assistant button - opens the floating AI bar */}
+        {terminals.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => openAiBar('suggest')}
+              className="flex h-full shrink-0 items-center gap-1 px-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-primary"
+              aria-label="Autocomplete terminal command"
+              title={`Autocomplete terminal command (${formatShortcutDisplay('mod+;')})`}
+            >
+              <WandSparkles className="h-3.5 w-3.5" />
+              <span className="hidden text-[10px] md:inline">Complete</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openAiBar('ask')}
+              className="flex h-full shrink-0 items-center gap-1 px-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-primary"
+              aria-label="Ask terminal AI"
+              title={`Ask terminal AI (${formatShortcutDisplay('mod+i')})`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden text-[10px] md:inline">AI</span>
+            </button>
+          </>
+        )}
+
         {!hideControls && (
           <>
             {/* Minimize button */}
@@ -392,6 +466,14 @@ export function TerminalView({
             isWorktreeActive={isWorktreeActive}
           />
         ))}
+        <TerminalAIBar
+          worktreeId={worktreeId}
+          worktreePath={worktreePath}
+          terminalId={activeTerminalId}
+          open={aiBarOpen}
+          initialMode={aiBarMode}
+          onClose={closeAiBar}
+        />
       </div>
     </div>
   )

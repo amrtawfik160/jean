@@ -32,6 +32,7 @@ import {
   loadSecurityContext,
 } from '@/services/github'
 import { linearQueryKeys, loadLinearIssueContext } from '@/services/linear'
+import { attachTerminalContext } from '@/services/terminal-ai'
 import type { WorktreeFile } from '@/types/chat'
 import { SlashPopover, type SlashPopoverHandle } from './SlashPopover'
 import {
@@ -196,6 +197,32 @@ export const ChatInput = memo(function ChatInput({
         handleFocusChatInput
       )
   }, [inputRef])
+
+  // Listen for external append from the embedded browser inspector — splice
+  // the element block onto the current draft and sync DOM + store.
+  useEffect(() => {
+    const handleAppend = (e: Event) => {
+      if (!activeSessionId) return
+      const detail = (e as CustomEvent<{ sessionId: string; text: string }>)
+        .detail
+      if (!detail || detail.sessionId !== activeSessionId) return
+      if (!inputRef.current) return
+      const current = inputRef.current.value
+      const joined = current
+        ? `${current.replace(/\n+$/, '')}\n\n${detail.text}\n`
+        : `${detail.text}\n`
+      inputRef.current.value = joined
+      valueRef.current = joined
+      useChatStore.getState().setInputDraft(activeSessionId, joined)
+      setShowHint(false)
+      onHasValueChangeRef.current?.(true)
+      resizeTextarea()
+      inputRef.current.focus()
+    }
+    window.addEventListener('command:append-chat-input', handleAppend)
+    return () =>
+      window.removeEventListener('command:append-chat-input', handleAppend)
+  }, [activeSessionId, inputRef, resizeTextarea])
 
   // Sync DOM when store draft is cleared or restored externally
   useEffect(() => {
@@ -590,6 +617,29 @@ export const ChatInput = memo(function ChatInput({
         return
       }
 
+      // Mod+ArrowUp recalls the last sent message into the composer.
+      // If composer already has content, this is a no-op (preserves drafts).
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key === 'ArrowUp' &&
+        !e.shiftKey &&
+        !e.altKey &&
+        activeSessionId
+      ) {
+        const last =
+          useChatStore.getState().lastSentMessages[activeSessionId] ?? ''
+        if (last && !valueRef.current) {
+          e.preventDefault()
+          const textarea = e.currentTarget as HTMLTextAreaElement
+          textarea.value = last
+          valueRef.current = last
+          textarea.dispatchEvent(new Event('input', { bubbles: true }))
+          textarea.setSelectionRange(last.length, last.length)
+          resizeTextarea()
+          return
+        }
+      }
+
       // Fallback cancel shortcut handling while input is focused.
       // Global listeners should handle this already, but this avoids misses when
       // keybinding state is stale or a platform reports forward-delete.
@@ -970,6 +1020,10 @@ export const ChatInput = memo(function ChatInput({
         return item.advisory?.ghsaId ?? item.label
       case 'linear':
         return item.linearIssue?.identifier ?? item.label
+      case 'terminal':
+        return item.terminalLabel
+          ? `Terminal#${item.terminalLabel}`
+          : item.label.replace(/\s+/g, '')
     }
   }, [])
 
@@ -1021,6 +1075,12 @@ export const ChatInput = memo(function ChatInput({
             activeSessionId,
             activeProjectId,
             item.linearIssue.id
+          )
+        } else if (item.type === 'terminal' && item.terminalId) {
+          await attachTerminalContext(
+            activeSessionId,
+            item.terminalId,
+            item.terminalLabel ?? item.title
           )
         } else {
           throw new Error('Missing context information')

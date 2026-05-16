@@ -7,6 +7,7 @@ use tauri::{AppHandle, Manager};
 use uuid::Uuid;
 
 use super::naming::{spawn_naming_task, NamingRequest};
+use super::native_history::latest_native_session_title;
 use super::registry::{cancel_process, cancel_process_if_running};
 use super::run_log;
 use super::storage::{
@@ -653,6 +654,150 @@ pub async fn update_session_state(
     // This is the single cache invalidation point for session state mutations —
     // other commands (e.g. mark_plan_approved) rely on callers also invoking
     // update_session_state rather than emitting their own invalidation.
+    emit_sessions_cache_invalidation(&app);
+    Ok(())
+}
+
+/// Update run status for native Claude/Codex terminal sessions.
+///
+/// Full-screen native CLI sessions do not stream through the normal chat runner,
+/// so their PTY lifecycle is the source of truth for "running" vs "completed".
+#[tauri::command]
+pub async fn update_native_terminal_session_run_status(
+    app: AppHandle,
+    worktree_id: String,
+    worktree_path: String,
+    session_id: String,
+    status: RunStatus,
+) -> Result<(), String> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| format!("System time error: {e}"))?
+        .as_secs();
+
+    with_existing_metadata_mut(&app, &session_id, |session| {
+        if session.worktree_id != worktree_id {
+            return;
+        }
+
+        if !matches!(session.backend, Backend::Claude | Backend::Codex) {
+            return;
+        }
+
+        if session.primary_surface.as_deref() != Some("terminal") {
+            return;
+        }
+
+        let is_start = status == RunStatus::Running;
+        let is_finished = matches!(
+            status,
+            RunStatus::Completed | RunStatus::Cancelled | RunStatus::Crashed
+        );
+
+        if is_start {
+            let has_running = session
+                .runs
+                .last()
+                .is_some_and(|run| run.status == RunStatus::Running);
+            if !has_running {
+                session.runs.push(super::types::RunEntry {
+                    run_id: Uuid::new_v4().to_string(),
+                    user_message_id: Uuid::new_v4().to_string(),
+                    user_message: session
+                        .terminal_label
+                        .clone()
+                        .unwrap_or_else(|| session.name.clone()),
+                    model: session.selected_model.clone(),
+                    execution_mode: session.selected_execution_mode.clone(),
+                    thinking_level: None,
+                    effort_level: None,
+                    started_at: now,
+                    ended_at: None,
+                    status,
+                    assistant_message_id: None,
+                    cancelled: false,
+                    recovered: false,
+                    claude_session_id: session.claude_session_id.clone(),
+                    pid: None,
+                    usage: None,
+                    codex_thread_id: session.codex_thread_id.clone(),
+                    codex_turn_id: None,
+                    cursor_chat_id: None,
+                });
+            }
+        } else if is_finished {
+            if let Some(run) = session
+                .runs
+                .iter_mut()
+                .rev()
+                .find(|run| run.status == RunStatus::Running)
+            {
+                run.status = status.clone();
+                run.ended_at = Some(now);
+                run.cancelled = status == RunStatus::Cancelled;
+            } else {
+                session.runs.push(super::types::RunEntry {
+                    run_id: Uuid::new_v4().to_string(),
+                    user_message_id: Uuid::new_v4().to_string(),
+                    user_message: session
+                        .terminal_label
+                        .clone()
+                        .unwrap_or_else(|| session.name.clone()),
+                    model: session.selected_model.clone(),
+                    execution_mode: session.selected_execution_mode.clone(),
+                    thinking_level: None,
+                    effort_level: None,
+                    started_at: now,
+                    ended_at: Some(now),
+                    status: status.clone(),
+                    assistant_message_id: None,
+                    cancelled: status == RunStatus::Cancelled,
+                    recovered: false,
+                    claude_session_id: session.claude_session_id.clone(),
+                    pid: None,
+                    usage: None,
+                    codex_thread_id: session.codex_thread_id.clone(),
+                    codex_turn_id: None,
+                    cursor_chat_id: None,
+                });
+            }
+        }
+
+        if is_finished {
+            let backend_label = match session.backend {
+                Backend::Claude => Some("Claude"),
+                Backend::Codex => Some("Codex"),
+                _ => None,
+            };
+            if let Some(label) = backend_label {
+                let title = latest_native_session_title(
+                    &worktree_path,
+                    label.to_ascii_lowercase().as_str(),
+                );
+                let has_default_name = session.name == label
+                    || session.name == "Terminal"
+                    || session.name.starts_with("Session ");
+                let has_default_label = session
+                    .terminal_label
+                    .as_deref()
+                    .map(|value| value == label || value == "Terminal")
+                    .unwrap_or(true);
+                if let Some(title) = title.filter(|value| !value.trim().is_empty()) {
+                    if has_default_name {
+                        session.name = title.clone();
+                    }
+                    if has_default_label {
+                        session.terminal_label = Some(title);
+                    }
+                }
+            }
+        }
+
+        session.waiting_for_input = false;
+        session.waiting_for_input_type = None;
+        session.is_reviewing = false;
+    })?;
+
     emit_sessions_cache_invalidation(&app);
     Ok(())
 }
@@ -3843,7 +3988,10 @@ fn process_dynamic_image(
 
 /// Process image: resize to Claude's optimal limit (1568px) and convert opaque PNG→JPEG.
 /// Returns (processed_bytes, final_extension) — extension may change (e.g. png→jpg).
-fn process_image(image_data: &[u8], extension: &str) -> Result<(Vec<u8>, String), String> {
+pub(crate) fn process_image(
+    image_data: &[u8],
+    extension: &str,
+) -> Result<(Vec<u8>, String), String> {
     // Skip GIFs (may be animated) and small images
     if extension == "gif" || image_data.len() < MIN_PROCESS_SIZE {
         return Ok((image_data.to_vec(), extension.to_string()));
@@ -3924,8 +4072,9 @@ pub async fn save_pasted_image(
 }
 
 /// Save processed image data to disk with atomic write (temp file + rename).
-/// Shared by save_pasted_image, read_clipboard_image, and save_dropped_image.
-fn save_image_to_disk(
+/// Shared by save_pasted_image, read_clipboard_image, save_dropped_image, and
+/// the browser devtools screenshot/annotation pipeline.
+pub(crate) fn save_image_to_disk(
     images_dir: &std::path::Path,
     data: &[u8],
     ext: &str,
@@ -4424,15 +4573,7 @@ pub async fn open_file_in_default_app(path: String, editor: Option<String>) -> R
     #[cfg(target_os = "macos")]
     {
         let result = match editor_app.as_str() {
-            "zed" => match std::process::Command::new("zed").arg(&path).spawn() {
-                Ok(child) => Ok(child),
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                    std::process::Command::new("open")
-                        .args(["-a", "Zed", &path])
-                        .spawn()
-                }
-                Err(e) => Err(e),
-            },
+            "zed" => open_zed_on_macos(&path),
             "cursor" => match std::process::Command::new("cursor").arg(&path).spawn() {
                 Ok(child) => Ok(child),
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -4526,6 +4667,48 @@ pub async fn open_file_in_default_app(path: String, editor: Option<String>) -> R
     }
 
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_zed_on_macos(path: &str) -> std::io::Result<std::process::Child> {
+    let cli_candidates = [
+        "zed",
+        "/opt/homebrew/bin/zed",
+        "/usr/local/bin/zed",
+        "/Applications/Zed.app/Contents/MacOS/cli",
+        "/Applications/Zed.app/Contents/MacOS/zed",
+    ];
+
+    let mut last_error = None;
+    for candidate in cli_candidates {
+        match std::process::Command::new(candidate).arg(path).spawn() {
+            Ok(child) => return Ok(child),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                last_error = Some(e);
+            }
+            Err(e) => return Err(e),
+        }
+    }
+
+    match std::process::Command::new("open")
+        .args(["-b", "dev.zed.Zed", path])
+        .spawn()
+    {
+        Ok(child) => Ok(child),
+        Err(bundle_error) => match std::process::Command::new("open")
+            .args(["-a", "Zed", path])
+            .spawn()
+        {
+            Ok(child) => Ok(child),
+            Err(app_error) => {
+                if app_error.kind() == std::io::ErrorKind::NotFound {
+                    Err(last_error.unwrap_or(app_error))
+                } else {
+                    Err(bundle_error)
+                }
+            }
+        },
+    }
 }
 
 // ============================================================================
@@ -6282,9 +6465,10 @@ pub async fn reorder_message_queue(
             if placed.contains(id) {
                 continue;
             }
-            if let Some(msg) = current.iter().find(|m| {
-                m.get("id").and_then(|v| v.as_str()) == Some(id.as_str())
-            }) {
+            if let Some(msg) = current
+                .iter()
+                .find(|m| m.get("id").and_then(|v| v.as_str()) == Some(id.as_str()))
+            {
                 reordered.push(msg.clone());
                 placed.insert(id.clone());
             }

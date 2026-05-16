@@ -3742,6 +3742,65 @@ fn format_open_error(app_name: &str, error: &std::io::Error) -> String {
     }
 }
 
+#[cfg(target_os = "macos")]
+fn open_zed_on_macos(path: &str) -> std::io::Result<std::process::Child> {
+    // CLI helpers (the `cli` binary forwards paths to a running/launched Zed instance).
+    // Try Zed stable first, then Zed Preview, then Zed Nightly / Dev.
+    let cli_candidates = [
+        "zed",
+        "/opt/homebrew/bin/zed",
+        "/usr/local/bin/zed",
+        "/Applications/Zed.app/Contents/MacOS/cli",
+        "/Applications/Zed Preview.app/Contents/MacOS/cli",
+        "/Applications/Zed Nightly.app/Contents/MacOS/cli",
+        "/Applications/Zed Dev.app/Contents/MacOS/cli",
+    ];
+
+    let mut last_error = None;
+    for candidate in cli_candidates {
+        match std::process::Command::new(candidate).arg(path).spawn() {
+            Ok(child) => return Ok(child),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                last_error = Some(e);
+            }
+            Err(e) => return Err(e),
+        }
+    }
+
+    // Fallbacks via `open`: try every known Zed bundle id, then by app name.
+    let bundle_ids = [
+        "dev.zed.Zed",
+        "dev.zed.Zed-Preview",
+        "dev.zed.Zed-Nightly",
+        "dev.zed.Zed-Dev",
+    ];
+    let app_names = ["Zed", "Zed Preview", "Zed Nightly", "Zed Dev"];
+
+    let mut open_error: Option<std::io::Error> = None;
+    for bundle in bundle_ids {
+        match std::process::Command::new("open")
+            .args(["-b", bundle, path])
+            .spawn()
+        {
+            Ok(child) => return Ok(child),
+            Err(e) => open_error = Some(e),
+        }
+    }
+    for name in app_names {
+        match std::process::Command::new("open")
+            .args(["-a", name, path])
+            .spawn()
+        {
+            Ok(child) => return Ok(child),
+            Err(e) => open_error = Some(e),
+        }
+    }
+
+    Err(open_error.or(last_error).unwrap_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::NotFound, "Zed editor not found")
+    }))
+}
+
 /// Open a worktree path in the configured terminal app
 #[tauri::command]
 pub async fn open_worktree_in_terminal(
@@ -3936,19 +3995,7 @@ pub async fn open_worktree_in_editor(
     #[cfg(target_os = "macos")]
     {
         let result = match editor_app.as_str() {
-            "zed" => match std::process::Command::new("zed")
-                .arg(&worktree_path)
-                .spawn()
-            {
-                Ok(child) => Ok(child),
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                    // zed CLI not installed, fall back to macOS open
-                    std::process::Command::new("open")
-                        .args(["-a", "Zed", &worktree_path])
-                        .spawn()
-                }
-                Err(e) => Err(e),
-            },
+            "zed" => open_zed_on_macos(&worktree_path),
             "cursor" => match std::process::Command::new("cursor")
                 .arg(&worktree_path)
                 .spawn()

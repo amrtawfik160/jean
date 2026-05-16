@@ -3,7 +3,8 @@ use tauri::Manager;
 
 use crate::projects::github_issues::{
     get_github_contexts_dir, get_session_advisory_refs, get_session_issue_refs,
-    get_session_pr_refs, get_session_security_refs,
+    get_session_pr_refs, get_session_security_refs, load_context_references,
+    save_context_references,
 };
 use crate::projects::linear_issues::get_session_linear_refs;
 use crate::projects::storage::load_projects_data;
@@ -286,6 +287,79 @@ fn collect_context_paths(
     paths
 }
 
+fn add_session_ref(sessions: &mut Vec<String>, session_id: &str) {
+    if !sessions.iter().any(|existing| existing == session_id) {
+        sessions.push(session_id.to_string());
+    }
+}
+
+fn copy_context_references(
+    app: &tauri::AppHandle,
+    source_session_id: &str,
+    target_session_id: &str,
+) -> Result<(), String> {
+    if source_session_id == target_session_id {
+        return Ok(());
+    }
+
+    let mut refs = load_context_references(app)?;
+    for entry in refs.issues.values_mut() {
+        if entry.sessions.iter().any(|s| s == source_session_id) {
+            add_session_ref(&mut entry.sessions, target_session_id);
+            entry.orphaned_at = None;
+        }
+    }
+    for entry in refs.prs.values_mut() {
+        if entry.sessions.iter().any(|s| s == source_session_id) {
+            add_session_ref(&mut entry.sessions, target_session_id);
+            entry.orphaned_at = None;
+        }
+    }
+    for entry in refs.security.values_mut() {
+        if entry.sessions.iter().any(|s| s == source_session_id) {
+            add_session_ref(&mut entry.sessions, target_session_id);
+            entry.orphaned_at = None;
+        }
+    }
+    for entry in refs.advisories.values_mut() {
+        if entry.sessions.iter().any(|s| s == source_session_id) {
+            add_session_ref(&mut entry.sessions, target_session_id);
+            entry.orphaned_at = None;
+        }
+    }
+    for entry in refs.linear.values_mut() {
+        if entry.sessions.iter().any(|s| s == source_session_id) {
+            add_session_ref(&mut entry.sessions, target_session_id);
+            entry.orphaned_at = None;
+        }
+    }
+    save_context_references(app, &refs)?;
+
+    if let Ok(app_data_dir) = app.path().app_data_dir() {
+        let saved_contexts_dir = app_data_dir.join("session-context");
+        if saved_contexts_dir.exists() {
+            let source_prefix = format!("{source_session_id}-context-");
+            let target_prefix = format!("{target_session_id}-context-");
+            if let Ok(entries) = std::fs::read_dir(&saved_contexts_dir) {
+                for entry in entries.flatten() {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    if !name.starts_with(&source_prefix) || !name.ends_with(".md") {
+                        continue;
+                    }
+                    let target_name = name.replacen(&source_prefix, &target_prefix, 1);
+                    let target_path = saved_contexts_dir.join(target_name);
+                    if !target_path.exists() {
+                        std::fs::copy(entry.path(), target_path)
+                            .map_err(|e| format!("Failed to copy saved context: {e}"))?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub fn build_combined_terminal_context_content(
     app: &tauri::AppHandle,
     session_id: &str,
@@ -349,21 +423,25 @@ pub fn prepare_backend_terminal_context(
     session_id: &str,
     worktree_id: &str,
     backend: TerminalContextBackend,
+    source_session_id: Option<&str>,
 ) -> Result<PreparedBackendTerminalContext, String> {
+    if let Some(source_session_id) = source_session_id {
+        copy_context_references(app, source_session_id, session_id)?;
+    }
+
     let context_file = write_combined_terminal_context_file(app, session_id, worktree_id)?;
     let command_args = match backend {
         TerminalContextBackend::Claude => vec![
             "--append-system-prompt-file".to_string(),
             context_file.to_string_lossy().to_string(),
         ],
-        TerminalContextBackend::Codex => {
-            let content = std::fs::read_to_string(&context_file)
-                .map_err(|e| format!("Failed to read terminal context file: {e}"))?;
-            vec![
-                "--config".to_string(),
-                format!("base_instructions={}", toml_basic_string(&content)),
-            ]
-        }
+        TerminalContextBackend::Codex => vec![
+            "--config".to_string(),
+            format!(
+                "model_instructions_file={}",
+                toml_basic_string(&context_file.to_string_lossy())
+            ),
+        ],
         TerminalContextBackend::Opencode | TerminalContextBackend::Cursor => Vec::new(),
     };
 

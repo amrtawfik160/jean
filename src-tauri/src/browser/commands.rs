@@ -36,6 +36,10 @@ fn title_observer_script(tab_id: &str) -> String {
 }
 
 /// Create a new browser tab as a child Webview of the main window.
+///
+/// `user_agent` is set once at creation time. To switch UA later (device
+/// preset change) the frontend must call `browser_close` then `browser_create`
+/// again with the new UA — Tauri's WebviewBuilder offers no post-create UA API.
 #[tauri::command]
 pub async fn browser_create(
     app: AppHandle,
@@ -45,8 +49,9 @@ pub async fn browser_create(
     y: f64,
     width: f64,
     height: f64,
+    user_agent: Option<String>,
 ) -> Result<String, String> {
-    log::trace!("browser_create tab_id={tab_id} url={url}");
+    log::trace!("browser_create tab_id={tab_id} url={url} ua={user_agent:?}");
 
     if has_tab(&tab_id) {
         return Err(format!("Browser tab '{tab_id}' already exists"));
@@ -61,7 +66,7 @@ pub async fn browser_create(
 
     let app_for_load = app.clone();
     let tab_for_load = tab_id.clone();
-    let builder = WebviewBuilder::new(&label, WebviewUrl::External(parsed)).on_page_load(
+    let mut builder = WebviewBuilder::new(&label, WebviewUrl::External(parsed)).on_page_load(
         move |webview, payload| {
             let url_str = payload.url().to_string();
             let event_name = match payload.event() {
@@ -87,6 +92,10 @@ pub async fn browser_create(
             }
         },
     );
+
+    if let Some(ua) = user_agent.as_deref().filter(|s| !s.is_empty()) {
+        builder = builder.user_agent(ua);
+    }
 
     // Frontend sends PHYSICAL pixels (CSS px × devicePixelRatio).
     // Use PhysicalPosition/PhysicalSize so Tauri stores them as-is — bypassing

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Bug, GitPullRequest, ShieldAlert, Siren } from 'lucide-react'
+import { Bug, GitPullRequest, ShieldAlert, Siren, Terminal } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   filterAdvisories,
@@ -35,6 +35,8 @@ import type {
 } from '@/types/github'
 import type { LinearIssue } from '@/types/linear'
 import { LinearIcon } from '@/components/icons/LinearIcon'
+import { useChatStore } from '@/store/chat-store'
+import { useTerminalStore } from '@/store/terminal-store'
 
 export type ContextMentionType =
   | 'issue'
@@ -42,6 +44,7 @@ export type ContextMentionType =
   | 'security'
   | 'advisory'
   | 'linear'
+  | 'terminal'
 
 export interface ContextMentionItem {
   id: string
@@ -56,6 +59,10 @@ export interface ContextMentionItem {
   securityAlert?: DependabotAlert
   advisory?: RepositoryAdvisory
   linearIssue?: LinearIssue
+  /** Terminal ID for `terminal` items (worktree-local). */
+  terminalId?: string
+  /** Human label for the terminal (used in the chat input token). */
+  terminalLabel?: string
 }
 
 export interface ContextMentionGroup {
@@ -141,6 +148,44 @@ function linearToItem(issue: LinearIssue): ContextMentionItem {
   }
 }
 
+interface TerminalListItem {
+  id: string
+  label: string
+  command: string | null
+  running: boolean
+}
+
+/** Token-safe slug for the chat input. e.g. "term 1" → "term-1". */
+function sanitizeTerminalLabel(raw: string): string {
+  return (
+    raw
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9._-]/g, '')
+      .replace(/^-+|-+$/g, '') || 'terminal'
+  )
+}
+
+function terminalToItem(t: TerminalListItem): ContextMentionItem {
+  const slug = sanitizeTerminalLabel(t.label)
+  return {
+    id: `terminal:${t.id}`,
+    type: 'terminal',
+    label: `Terminal#${slug}`,
+    title: t.label,
+    subtitle: t.command
+      ? `${t.running ? 'running' : 'stopped'} • ${t.command}`
+      : t.running
+        ? 'running'
+        : 'stopped',
+    badge: t.running ? 'live' : undefined,
+    icon: Terminal,
+    terminalId: t.id,
+    terminalLabel: slug,
+  }
+}
+
 function isOpenIssue(issue: GitHubIssue): boolean {
   return issue.state.toLowerCase() === 'open'
 }
@@ -207,6 +252,24 @@ export function useContextMentionData({
     enabledProjectId,
     { enabled: open }
   )
+
+  // Active terminals for the currently-active worktree. Read from stores
+  // directly so callers don't have to plumb worktreeId through props.
+  const activeWorktreeId = useChatStore(state => state.activeWorktreeId)
+  const worktreeTerminals = useTerminalStore(state =>
+    activeWorktreeId ? state.terminals[activeWorktreeId] : undefined
+  )
+  const runningTerminals = useTerminalStore(state => state.runningTerminals)
+
+  const terminalList = useMemo<TerminalListItem[]>(() => {
+    if (!worktreeTerminals) return []
+    return worktreeTerminals.map(t => ({
+      id: t.id,
+      label: t.label,
+      command: t.command,
+      running: runningTerminals.has(t.id),
+    }))
+  }, [worktreeTerminals, runningTerminals])
 
   const { data: searchedIssues, isFetching: isSearchingIssues } =
     useSearchGitHubIssues(enabledProjectPath, activeQuery)
@@ -300,7 +363,22 @@ export function useContextMentionData({
       mergedLinear.set(issue.id, issue)
     }
 
+    const lowerQuery = q
+    const filteredTerminals = lowerQuery
+      ? terminalList.filter(
+          t =>
+            t.label.toLowerCase().includes(lowerQuery) ||
+            (t.command ?? '').toLowerCase().includes(lowerQuery) ||
+            'terminal'.includes(lowerQuery)
+        )
+      : terminalList
+
     const allGroups: ContextMentionGroup[] = [
+      {
+        id: 'terminal',
+        heading: 'Terminals',
+        items: filteredTerminals.slice(0, 8).map(terminalToItem),
+      },
       {
         id: 'issue',
         heading: 'GitHub Issues',
@@ -353,6 +431,7 @@ export function useContextMentionData({
     searchedIssues,
     searchedLinear,
     searchedPRs,
+    terminalList,
   ])
 
   return {

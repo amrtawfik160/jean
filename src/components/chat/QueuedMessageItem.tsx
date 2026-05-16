@@ -296,10 +296,7 @@ export const QueuedMessagesList = memo(function QueuedMessagesList({
         modifiers={[restrictToParentElement]}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext
-          items={itemIds}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {messages.map((msg, index) => (
             <QueuedMessageItem
               key={msg.id}

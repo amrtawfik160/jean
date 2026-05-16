@@ -69,63 +69,64 @@
   --font-family-chat:
     'JetBrains Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
 
-  /* Linear-style 6px radius */
+  /* Vercel-style radius */
   --radius: 0.5rem;
 
-  /* Linear-inspired dark palette */
-  --background: oklch(0.16 0.005 270);
-  --foreground: oklch(0.985 0.002 270);
+  /* Vercel-inspired true-black neutral palette (Geist / zinc) */
+  --background: oklch(0.04 0 0); /* ≈ #0a0a0a */
+  --foreground: oklch(0.985 0 0); /* near-white */
 
-  --surface-1: oklch(0.18 0.006 270);
-  --surface-2: oklch(0.21 0.007 270);
-  --surface-3: oklch(0.24 0.008 270);
+  --surface-1: oklch(0.08 0 0); /* zinc-950 */
+  --surface-2: oklch(0.13 0 0); /* zinc-900 */
+  --surface-3: oklch(0.18 0 0); /* zinc-800 */
 
-  --card: oklch(0.18 0.006 270);
-  --card-foreground: oklch(0.985 0.002 270);
-  --popover: oklch(0.2 0.007 270);
-  --popover-foreground: oklch(0.985 0.002 270);
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.985 0 0);
 
-  --primary: oklch(0.66 0.19 268); /* Linear indigo ~ #5e6ad2 */
-  --primary-foreground: oklch(0.985 0.002 270);
+  /* Vercel uses white-on-black as the primary action surface */
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.06 0 0);
 
-  --secondary: oklch(0.22 0.008 270);
-  --secondary-foreground: oklch(0.985 0.002 270);
+  --secondary: oklch(0.13 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: oklch(0.22 0.008 270);
-  --muted-foreground: oklch(0.62 0.012 270);
+  --muted: oklch(0.13 0 0);
+  --muted-foreground: oklch(0.62 0 0); /* zinc-500 */
 
-  --accent: oklch(0.26 0.009 270);
-  --accent-foreground: oklch(0.985 0.002 270);
+  --accent: oklch(0.18 0 0);
+  --accent-foreground: oklch(0.985 0 0);
 
   --destructive: oklch(0.62 0.22 24);
   --warning: oklch(0.78 0.16 80);
   --success: oklch(0.7 0.15 155);
 
-  --border: oklch(0.27 0.01 270);
-  --input: oklch(0.27 0.01 270);
-  --ring: oklch(0.66 0.19 268 / 0.6);
+  --border: oklch(0.22 0 0); /* zinc-800, low-contrast hairlines */
+  --input: oklch(0.22 0 0);
+  --ring: oklch(0.985 0 0 / 0.35); /* neutral white focus ring */
 
-  --chart-1: oklch(0.66 0.19 268);
+  --chart-1: oklch(0.7 0.15 230); /* Vercel blue */
   --chart-2: oklch(0.7 0.15 155);
   --chart-3: oklch(0.78 0.16 80);
   --chart-4: oklch(0.62 0.22 24);
-  --chart-5: oklch(0.7 0.15 200);
+  --chart-5: oklch(0.7 0.18 320);
 
-  --sidebar: oklch(0.15 0.005 270);
-  --sidebar-foreground: oklch(0.92 0.005 270);
-  --sidebar-primary: oklch(0.66 0.19 268);
-  --sidebar-primary-foreground: oklch(0.985 0.002 270);
-  --sidebar-accent: oklch(0.24 0.009 270);
-  --sidebar-accent-foreground: oklch(0.985 0.002 270);
-  --sidebar-border: oklch(0.24 0.009 270);
-  --sidebar-ring: oklch(0.66 0.19 268 / 0.6);
+  --sidebar: oklch(0.04 0 0); /* flush with background */
+  --sidebar-foreground: oklch(0.92 0 0);
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.06 0 0);
+  --sidebar-accent: oklch(0.13 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.18 0 0);
+  --sidebar-ring: oklch(0.985 0 0 / 0.35);
 
-  /* Soft layered shadows */
-  --shadow-elev-1: 0 1px 2px oklch(0 0 0 / 0.4);
+  /* Vercel-style flat, low-contrast elevation */
+  --shadow-elev-1: 0 1px 2px oklch(0 0 0 / 0.6);
   --shadow-elev-2:
-    0 4px 8px oklch(0 0 0 / 0.32), 0 1px 2px oklch(0 0 0 / 0.4);
+    0 4px 12px -2px oklch(0 0 0 / 0.55), 0 1px 2px oklch(0 0 0 / 0.45);
   --shadow-elev-3:
-    0 12px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0 0 0 / 0.3);
+    0 16px 32px -8px oklch(0 0 0 / 0.65), 0 4px 8px -2px oklch(0 0 0 / 0.45);
 
   /* Motion tokens */
   --motion-fast: 120ms;
@@ -138,54 +139,222 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
+
+  /* Liquid glass tokens — recalibrated for Vercel true-black base.
+   * `quiet` is for chrome (sidebar, toolbar, composer well, cards on hover).
+   * `loud` is for transient overlays (popovers, dropdowns, tooltips, toasts).
+   * `overlay` is for full-window scrims behind modals. */
+  --glass-bg-ok: 0.04 0 0; /* OKLch triplet matching --background */
+
+  --glass-alpha-quiet: 0.84;
+  --glass-alpha-loud: 0.7;
+  --glass-alpha-overlay: 0.6;
+
+  --glass-blur-quiet: 12px;
+  --glass-blur-loud: 22px;
+  --glass-blur-overlay: 30px;
+
+  --glass-saturate: 140%;
+
+  --glass-rim: oklch(1 0 0 / 0.06);
+  --glass-rim-strong: oklch(1 0 0 / 0.12);
+
+  --glass-shadow-quiet:
+    0 1px 2px oklch(0 0 0 / 0.45), 0 2px 8px -2px oklch(0 0 0 / 0.5);
+  --glass-shadow-loud:
+    0 8px 24px -8px oklch(0 0 0 / 0.65), 0 2px 6px -2px oklch(0 0 0 / 0.5);
+
+  --glass-tint-primary: oklch(0.985 0 0 / 0.08);
+  --glass-tint-destructive: oklch(0.62 0.22 24 / 0.16);
+  --glass-tint-success: oklch(0.7 0.15 155 / 0.16);
+  --glass-tint-warning: oklch(0.78 0.16 80 / 0.16);
 }
 
 /* .dark mirrors :root so existing dark: variants keep behaving */
 .dark {
-  --background: oklch(0.16 0.005 270);
-  --foreground: oklch(0.985 0.002 270);
+  --background: oklch(0.04 0 0);
+  --foreground: oklch(0.985 0 0);
 
-  --surface-1: oklch(0.18 0.006 270);
-  --surface-2: oklch(0.21 0.007 270);
-  --surface-3: oklch(0.24 0.008 270);
+  --surface-1: oklch(0.08 0 0);
+  --surface-2: oklch(0.13 0 0);
+  --surface-3: oklch(0.18 0 0);
 
-  --card: oklch(0.18 0.006 270);
-  --card-foreground: oklch(0.985 0.002 270);
-  --popover: oklch(0.2 0.007 270);
-  --popover-foreground: oklch(0.985 0.002 270);
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.985 0 0);
 
-  --primary: oklch(0.66 0.19 268);
-  --primary-foreground: oklch(0.985 0.002 270);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.06 0 0);
 
-  --secondary: oklch(0.22 0.008 270);
-  --secondary-foreground: oklch(0.985 0.002 270);
+  --secondary: oklch(0.13 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: oklch(0.22 0.008 270);
-  --muted-foreground: oklch(0.62 0.012 270);
+  --muted: oklch(0.13 0 0);
+  --muted-foreground: oklch(0.62 0 0);
 
-  --accent: oklch(0.26 0.009 270);
-  --accent-foreground: oklch(0.985 0.002 270);
+  --accent: oklch(0.18 0 0);
+  --accent-foreground: oklch(0.985 0 0);
 
   --destructive: oklch(0.62 0.22 24);
   --warning: oklch(0.78 0.16 80);
   --success: oklch(0.7 0.15 155);
 
-  --border: oklch(0.27 0.01 270);
-  --input: oklch(0.27 0.01 270);
-  --ring: oklch(0.66 0.19 268 / 0.6);
+  --border: oklch(0.22 0 0);
+  --input: oklch(0.22 0 0);
+  --ring: oklch(0.985 0 0 / 0.35);
 
-  --sidebar: oklch(0.15 0.005 270);
-  --sidebar-foreground: oklch(0.92 0.005 270);
-  --sidebar-primary: oklch(0.66 0.19 268);
-  --sidebar-primary-foreground: oklch(0.985 0.002 270);
-  --sidebar-accent: oklch(0.24 0.009 270);
-  --sidebar-accent-foreground: oklch(0.985 0.002 270);
-  --sidebar-border: oklch(0.24 0.009 270);
-  --sidebar-ring: oklch(0.66 0.19 268 / 0.6);
+  --sidebar: oklch(0.04 0 0);
+  --sidebar-foreground: oklch(0.92 0 0);
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.06 0 0);
+  --sidebar-accent: oklch(0.13 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.18 0 0);
+  --sidebar-ring: oklch(0.985 0 0 / 0.35);
 
-  /* Toast surface — distinct from app background and card */
-  --toast-background: oklch(0.23 0.008 270);
-  --toast-border: oklch(0.3 0.01 270);
+  /* Toast surface — slightly lifted from card */
+  --toast-background: oklch(0.13 0 0);
+  --toast-border: oklch(0.24 0 0);
+
+  /* Liquid glass tokens (mirror :root) */
+  --glass-bg-ok: 0.04 0 0;
+  --glass-alpha-quiet: 0.84;
+  --glass-alpha-loud: 0.7;
+  --glass-alpha-overlay: 0.6;
+  --glass-blur-quiet: 12px;
+  --glass-blur-loud: 22px;
+  --glass-blur-overlay: 30px;
+  --glass-saturate: 140%;
+  --glass-rim: oklch(1 0 0 / 0.06);
+  --glass-rim-strong: oklch(1 0 0 / 0.12);
+  --glass-shadow-quiet:
+    0 1px 2px oklch(0 0 0 / 0.45), 0 2px 8px -2px oklch(0 0 0 / 0.5);
+  --glass-shadow-loud:
+    0 8px 24px -8px oklch(0 0 0 / 0.65), 0 2px 6px -2px oklch(0 0 0 / 0.5);
+  --glass-tint-primary: oklch(0.985 0 0 / 0.08);
+  --glass-tint-destructive: oklch(0.62 0.22 24 / 0.16);
+  --glass-tint-success: oklch(0.7 0.15 155 / 0.16);
+  --glass-tint-warning: oklch(0.78 0.16 80 / 0.16);
+}
+
+/* Honor users who opt out of translucency — flatten glass to opaque. */
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  .dark {
+    --glass-alpha-quiet: 0.98;
+    --glass-alpha-loud: 0.98;
+    --glass-alpha-overlay: 0.92;
+    --glass-blur-quiet: 0px;
+    --glass-blur-loud: 0px;
+    --glass-blur-overlay: 0px;
+  }
+}
+
+/* Vercel-flat backdrop — neutral white vignettes at very low alpha so glass
+ * surfaces still have something to blur, but the overall feel stays true-black.
+ * Z-index pinned behind app content. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 12% 8%, oklch(1 0 0 / 0.04), transparent 70%),
+    radial-gradient(50% 50% at 88% 14%, oklch(1 0 0 / 0.03), transparent 70%),
+    radial-gradient(70% 60% at 50% 100%, oklch(1 0 0 / 0.02), transparent 75%),
+    var(--background);
+  animation: aurora-drift 40s var(--ease-out-quint) infinite alternate;
+}
+@keyframes aurora-drift {
+  0% {
+    background-position:
+      0% 0%,
+      100% 0%,
+      50% 100%,
+      0 0;
+  }
+  100% {
+    background-position:
+      8% 4%,
+      92% 8%,
+      46% 96%,
+      0 0;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body::before {
+    background: var(--background);
+    animation: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
+}
+
+/* Liquid glass utility classes.
+ * Compose with Tailwind: `className="glass-quiet rounded-2xl p-3"`.
+ * Three tiers: quiet (chrome), loud (overlays), overlay (full-window scrim). */
+.glass-quiet {
+  background-color: oklch(var(--glass-bg-ok) / var(--glass-alpha-quiet));
+  -webkit-backdrop-filter: blur(var(--glass-blur-quiet))
+    saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-quiet)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-shadow-quiet);
+  background-image: linear-gradient(
+    to bottom,
+    oklch(1 0 0 / 0.04) 0%,
+    oklch(1 0 0 / 0) 24%
+  );
+}
+
+.glass-loud {
+  background-color: oklch(var(--glass-bg-ok) / var(--glass-alpha-loud));
+  -webkit-backdrop-filter: blur(var(--glass-blur-loud))
+    saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-loud)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-shadow-loud);
+  background-image: linear-gradient(
+    to bottom,
+    oklch(1 0 0 / 0.05) 0%,
+    oklch(1 0 0 / 0) 28%
+  );
+}
+
+.glass-overlay {
+  background-color: oklch(var(--glass-bg-ok) / var(--glass-alpha-overlay));
+  -webkit-backdrop-filter: blur(var(--glass-blur-overlay))
+    saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-overlay))
+    saturate(var(--glass-saturate));
+}
+
+/* Tint modifiers — combine with .glass-loud / .glass-quiet for accents. */
+.glass-tint-primary {
+  background-color: var(--glass-tint-primary);
+}
+.glass-tint-success {
+  background-color: var(--glass-tint-success);
+}
+.glass-tint-warning {
+  background-color: var(--glass-tint-warning);
+}
+.glass-tint-destructive {
+  background-color: var(--glass-tint-destructive);
+}
+
+/* Liquid-glass-aware focus rings — default ring uses box-shadow which is
+ * partially eaten by backdrop-filter; force a real outline for visibility. */
+.glass-quiet:focus-visible,
+.glass-loud:focus-visible,
+.glass-overlay:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 /* Wave animation for vibing indicator */
@@ -405,10 +574,10 @@
 @keyframes icon-glow {
   0%,
   100% {
-    filter: drop-shadow(0 0 2px oklch(0.66 0.19 268 / 0.5));
+    filter: drop-shadow(0 0 2px oklch(0.985 0 0 / 0.45));
   }
   50% {
-    filter: drop-shadow(0 0 5px oklch(0.66 0.19 268 / 0.8));
+    filter: drop-shadow(0 0 5px oklch(0.985 0 0 / 0.75));
   }
 }
 
@@ -496,6 +665,18 @@
 [data-sonner-toaster],
 [data-sonner-toaster] [data-sonner-toast] {
   pointer-events: auto !important;
+}
+
+/* Toast: liquid-glass surface, no opaque background. */
+[data-sonner-toaster] [data-sonner-toast] {
+  background-color: oklch(
+    var(--glass-bg-ok) / var(--glass-alpha-loud)
+  ) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-loud))
+    saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-loud)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-rim) !important;
+  box-shadow: var(--glass-shadow-loud) !important;
 }
 
 [data-sonner-toaster] [data-sonner-toast] [data-content] {
@@ -602,7 +783,7 @@ kbd {
 }
 
 ::highlight(chat-search) {
-  background-color: oklch(0.66 0.19 268 / 0.32);
+  background-color: oklch(0.7 0.15 230 / 0.32);
 }
 ::highlight(chat-search-active) {
   background-color: oklch(0.78 0.16 80 / 0.55);

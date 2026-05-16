@@ -21,8 +21,10 @@ import {
 } from '@dnd-kit/sortable'
 import { ChevronsDownUp, ChevronsUpDown, Folder } from '@/components/icons'
 import { isFolder, type Project } from '@/types/projects'
+import { ActivitySection } from './ActivitySection'
 import { ProjectTreeItem } from './ProjectTreeItem'
 import { FolderTreeItem } from './FolderTreeItem'
+import { useAllSessions } from '@/services/chat'
 import { useReorderItems, useMoveItem } from '@/services/projects'
 import { useProjectsStore } from '@/store/projects-store'
 import { Separator } from '@/components/ui/separator'
@@ -32,6 +34,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { getProjectsWithUnreadFinishedSessions } from './project-sidebar-state'
 
 const MAX_NESTING_DEPTH = 3
 
@@ -90,6 +93,8 @@ interface SortableItemProps {
   item: Project
   allProjects: Project[]
   depth: number
+  hasUnreadFinishedSession: boolean
+  unreadFinishedProjectIds: Set<string>
   isOverFolder: boolean
   expandedFolderIds: Set<string>
   overFolderId: string | null
@@ -100,6 +105,8 @@ function SortableItem({
   item,
   allProjects,
   depth,
+  hasUnreadFinishedSession,
+  unreadFinishedProjectIds,
   isOverFolder,
   expandedFolderIds,
   overFolderId,
@@ -140,6 +147,7 @@ function SortableItem({
                 projects={allProjects}
                 parentId={item.id}
                 depth={depth + 1}
+                unreadFinishedProjectIds={unreadFinishedProjectIds}
                 expandedFolderIds={expandedFolderIds}
                 overFolderId={overFolderId}
                 insertBeforeId={insertBeforeId}
@@ -162,7 +170,10 @@ function SortableItem({
         {...listeners}
         className={isDragging ? 'cursor-grabbing' : 'cursor-grab'}
       >
-        <ProjectTreeItem project={item} />
+        <ProjectTreeItem
+          project={item}
+          hasUnreadFinishedSession={hasUnreadFinishedSession}
+        />
       </div>
       {showInsertAfter && <InsertionIndicator />}
     </>
@@ -174,6 +185,7 @@ interface NestedItemsProps {
   projects: Project[]
   parentId: string
   depth: number
+  unreadFinishedProjectIds: Set<string>
   expandedFolderIds: Set<string>
   overFolderId: string | null
   insertBeforeId: string | null
@@ -183,6 +195,7 @@ function NestedItems({
   projects,
   parentId,
   depth,
+  unreadFinishedProjectIds,
   expandedFolderIds,
   overFolderId,
   insertBeforeId,
@@ -203,6 +216,8 @@ function NestedItems({
           item={item}
           allProjects={projects}
           depth={depth}
+          hasUnreadFinishedSession={unreadFinishedProjectIds.has(item.id)}
+          unreadFinishedProjectIds={unreadFinishedProjectIds}
           isOverFolder={overFolderId === item.id}
           expandedFolderIds={expandedFolderIds}
           overFolderId={overFolderId}
@@ -233,6 +248,7 @@ function RootDropZone({ isOver }: { isOver: boolean }) {
 }
 
 export function ProjectTree({ projects }: ProjectTreeProps) {
+  const { data: allSessions } = useAllSessions()
   const reorderItems = useReorderItems()
   const moveItem = useMoveItem()
   const {
@@ -251,6 +267,10 @@ export function ProjectTree({ projects }: ProjectTreeProps) {
   const activeItem = useMemo(
     () => (activeId ? projects.find(p => p.id === activeId) : null),
     [activeId, projects]
+  )
+  const unreadFinishedProjectIds = useMemo(
+    () => getProjectsWithUnreadFinishedSessions(allSessions),
+    [allSessions]
   )
 
   // Root level items split into folders and standalone projects
@@ -506,6 +526,7 @@ export function ProjectTree({ projects }: ProjectTreeProps) {
 
   return (
     <div className="py-1">
+      <ActivitySection />
       <DndContext
         sensors={sensors}
         collisionDetection={pointerWithin}
@@ -558,6 +579,8 @@ export function ProjectTree({ projects }: ProjectTreeProps) {
               item={item}
               allProjects={projects}
               depth={0}
+              hasUnreadFinishedSession={unreadFinishedProjectIds.has(item.id)}
+              unreadFinishedProjectIds={unreadFinishedProjectIds}
               isOverFolder={overFolderId === item.id}
               expandedFolderIds={expandedFolderIds}
               overFolderId={overFolderId}
@@ -610,6 +633,8 @@ export function ProjectTree({ projects }: ProjectTreeProps) {
               item={item}
               allProjects={projects}
               depth={0}
+              hasUnreadFinishedSession={unreadFinishedProjectIds.has(item.id)}
+              unreadFinishedProjectIds={unreadFinishedProjectIds}
               isOverFolder={false}
               expandedFolderIds={expandedFolderIds}
               overFolderId={overFolderId}

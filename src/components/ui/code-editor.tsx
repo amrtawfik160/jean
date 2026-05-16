@@ -15,8 +15,10 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import {
   syntaxHighlighting,
   defaultHighlightStyle,
+  HighlightStyle,
   type LanguageSupport,
 } from '@codemirror/language'
+import { tags as t } from '@lezer/highlight'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
@@ -62,6 +64,28 @@ function getLanguageSupport(language: string): LanguageSupport | null {
       return null
   }
 }
+
+// Markdown emphasis styles — oneDark doesn't cover these tags, so without
+// this layer bold/italic/inline-code render with no visual distinction.
+const markdownHighlightStyle = HighlightStyle.define([
+  { tag: t.heading1, fontWeight: 'bold', fontSize: '1.4em' },
+  { tag: t.heading2, fontWeight: 'bold', fontSize: '1.25em' },
+  { tag: t.heading3, fontWeight: 'bold', fontSize: '1.15em' },
+  { tag: [t.heading4, t.heading5, t.heading6], fontWeight: 'bold' },
+  { tag: t.strong, fontWeight: 'bold' },
+  { tag: t.emphasis, fontStyle: 'italic' },
+  { tag: t.strikethrough, textDecoration: 'line-through' },
+  {
+    tag: t.monospace,
+    backgroundColor: 'hsl(var(--accent) / 0.4)',
+    borderRadius: '3px',
+    padding: '0 3px',
+  },
+  { tag: t.link, color: 'hsl(var(--primary))', textDecoration: 'underline' },
+  { tag: t.url, color: 'hsl(var(--primary))' },
+  { tag: t.quote, fontStyle: 'italic', color: 'hsl(var(--muted-foreground))' },
+  { tag: t.contentSeparator, color: 'hsl(var(--muted-foreground))' },
+])
 
 // Light theme (simple, matches app background)
 const lightTheme = EditorView.theme({
@@ -191,8 +215,11 @@ export const CodeEditor = memo(function CodeEditor({
       rectangularSelection(),
       crosshairCursor(),
       history(),
-      keymap.of([...defaultKeymap, ...historyKeymap]),
+      keymap.of([...defaultKeymap, ...historyKeymap] as Parameters<
+        typeof keymap.of
+      >[0]),
       syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      syntaxHighlighting(markdownHighlightStyle),
       themeCompartment.current.of(isDark ? [oneDark, darkTheme] : lightTheme),
       languageCompartment.current.of(langSupport ? [langSupport] : []),
       readOnlyCompartment.current.of(

@@ -37,6 +37,10 @@ vi.mock('./SlashPopover', () => ({
   SlashPopover: () => null,
 }))
 
+vi.mock('./ContextMentionPopover', () => ({
+  ContextMentionPopover: () => null,
+}))
+
 vi.mock('@/lib/transport', () => ({
   invoke: vi.fn(),
 }))

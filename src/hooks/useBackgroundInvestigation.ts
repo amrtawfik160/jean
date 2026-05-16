@@ -48,9 +48,12 @@ export function useBackgroundInvestigation(): void {
   // Refs for unstable dependencies — sendMessage is a new object every render,
   // preferences changes when data loads. Using refs keeps the effect deps stable.
   const sendMessageRef = useRef(sendMessage)
-  sendMessageRef.current = sendMessage
   const preferencesRef = useRef(preferences)
-  preferencesRef.current = preferences
+
+  useEffect(() => {
+    sendMessageRef.current = sendMessage
+    preferencesRef.current = preferences
+  }, [sendMessage, preferences])
 
   // Subscribe to auto-investigate flags — re-run effect when they change
   const hasAutoInvestigate = useUIStore(

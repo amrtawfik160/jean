@@ -813,7 +813,9 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
   // Keep a ref to sessionsByWorktreeId so effects/callbacks can read the
   // latest value without re-triggering when the Map reference changes.
   const sessionsByWorktreeIdRef = useRef(sessionsByWorktreeId)
-  sessionsByWorktreeIdRef.current = sessionsByWorktreeId
+  useEffect(() => {
+    sessionsByWorktreeIdRef.current = sessionsByWorktreeId
+  }, [sessionsByWorktreeId])
 
   // React to explicit auto-open requests immediately. The effect below still
   // reads the latest store state imperatively, but this primitive signal makes
@@ -879,6 +881,11 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
     },
     [projectId, queryClient]
   )
+
+  const [selectedWorktreeModal, setSelectedWorktreeModal] = useState<{
+    worktreeId: string
+    worktreePath: string
+  } | null>(null)
 
   const openWorktreeModal = useCallback(
     (worktreeId: string, worktreePath: string, reason: string) => {
@@ -1080,12 +1087,21 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
     return result
   }, [worktreeSections])
 
+  const shortcutNumberByWorktreeId = useMemo(() => {
+    const map = new Map<string, number>()
+    let shortcutNum = 0
+    for (const section of worktreeSections) {
+      if (section.isPending) continue
+      shortcutNum += 1
+      if (shortcutNum <= 9) {
+        map.set(section.worktree.id, shortcutNum)
+      }
+    }
+    return map
+  }, [worktreeSections])
+
   // Selection state
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
-  const [selectedWorktreeModal, setSelectedWorktreeModal] = useState<{
-    worktreeId: string
-    worktreePath: string
-  } | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   // Track highlighted card to survive reordering
   const highlightedCardRef = useRef<{
@@ -2160,9 +2176,6 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
     'All'
   const hasAnyVisibleWorktrees = filterTabCounts.all > 0
 
-  // Track global card index for refs
-  let cardIndex = 0
-
   return (
     <div className="relative flex h-full flex-col">
       <div className="flex-1 flex flex-col overflow-auto">
@@ -2569,61 +2582,57 @@ export function ProjectCanvasView({ projectId }: ProjectCanvasViewProps) {
             )
           ) : (
             <div className="flex flex-col gap-1">
-              {(() => {
-                let shortcutNum = 0
-                return worktreeSections.map(section => {
-                  const currentIndex = cardIndex++
-                  if (section.isPending) {
-                    return (
-                      <WorktreeSetupCard
-                        key={section.worktree.id}
-                        ref={el => {
-                          cardRefs.current[currentIndex] = el
-                        }}
-                        worktree={section.worktree}
-                        layout="list"
-                        isSelected={selectedIndex === currentIndex}
-                        onSelect={() => handleSelectedIndexChange(currentIndex)}
-                      />
-                    )
-                  }
-                  const thisShortcut =
-                    ++shortcutNum <= 9 ? shortcutNum : undefined
+              {worktreeSections.map((section, currentIndex) => {
+                if (section.isPending) {
                   return (
-                    <div
+                    <WorktreeSetupCard
                       key={section.worktree.id}
                       ref={el => {
                         cardRefs.current[currentIndex] = el
                       }}
-                    >
-                      <WorktreeSectionHeader
-                        worktree={section.worktree}
-                        projectId={projectId}
-                        defaultBranch={project.default_branch}
-                        openPRs={openPRs}
-                        cards={section.cards}
-                        showDetails={true}
-                        isSelected={selectedIndex === currentIndex}
-                        shortcutNumber={thisShortcut}
-                        onRowClick={() => {
-                          handleSelectedIndexChange(currentIndex)
-                          handleWorktreeClick(
-                            section.worktree.id,
-                            section.worktree.path
-                          )
-                        }}
-                        onDiffClick={(worktreePath, baseBranch, type) => {
-                          setCanvasDiffRequest({
-                            type,
-                            worktreePath,
-                            baseBranch,
-                          })
-                        }}
-                      />
-                    </div>
+                      worktree={section.worktree}
+                      layout="list"
+                      isSelected={selectedIndex === currentIndex}
+                      onSelect={() => handleSelectedIndexChange(currentIndex)}
+                    />
                   )
-                })
-              })()}
+                }
+                return (
+                  <div
+                    key={section.worktree.id}
+                    ref={el => {
+                      cardRefs.current[currentIndex] = el
+                    }}
+                  >
+                    <WorktreeSectionHeader
+                      worktree={section.worktree}
+                      projectId={projectId}
+                      defaultBranch={project.default_branch}
+                      openPRs={openPRs}
+                      cards={section.cards}
+                      showDetails={true}
+                      isSelected={selectedIndex === currentIndex}
+                      shortcutNumber={shortcutNumberByWorktreeId.get(
+                        section.worktree.id
+                      )}
+                      onRowClick={() => {
+                        handleSelectedIndexChange(currentIndex)
+                        handleWorktreeClick(
+                          section.worktree.id,
+                          section.worktree.path
+                        )
+                      }}
+                      onDiffClick={(worktreePath, baseBranch, type) => {
+                        setCanvasDiffRequest({
+                          type,
+                          worktreePath,
+                          baseBranch,
+                        })
+                      }}
+                    />
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

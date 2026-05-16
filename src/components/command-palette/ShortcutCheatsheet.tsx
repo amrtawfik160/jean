@@ -71,7 +71,8 @@ export function ShortcutCheatsheet() {
       }
     }
     document.addEventListener('keydown', onKey, { capture: true })
-    return () => document.removeEventListener('keydown', onKey, { capture: true })
+    return () =>
+      document.removeEventListener('keydown', onKey, { capture: true })
   }, [open])
 
   const grouped = useMemo(() => {
@@ -84,13 +85,10 @@ export function ShortcutCheatsheet() {
             d.action.toLowerCase().includes(q)
         )
       : KEYBINDING_DEFINITIONS
-    return filtered.reduce<Record<string, KeybindingDefinition[]>>(
-      (acc, d) => {
-        ;(acc[d.category] ??= []).push(d)
-        return acc
-      },
-      {}
-    )
+    return filtered.reduce<Record<string, KeybindingDefinition[]>>((acc, d) => {
+      ;(acc[d.category] ??= []).push(d)
+      return acc
+    }, {})
   }, [search])
 
   const close = useCallback(() => setOpen(false), [])
@@ -103,7 +101,7 @@ export function ShortcutCheatsheet() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[80] flex items-start justify-center bg-background/70 backdrop-blur-md p-4 sm:p-12"
+          className="glass-overlay fixed inset-0 z-[80] flex items-start justify-center p-4 sm:p-12"
           onClick={close}
         >
           <motion.div
@@ -113,7 +111,7 @@ export function ShortcutCheatsheet() {
             transition={{ type: 'spring', stiffness: 400, damping: 32 }}
             onClick={e => e.stopPropagation()}
             className={cn(
-              'flex w-full max-w-3xl max-h-[80dvh] flex-col overflow-hidden rounded-xl border border-border bg-popover shadow-2xl'
+              'glass-loud flex w-full max-w-3xl max-h-[80dvh] flex-col overflow-hidden rounded-xl'
             )}
           >
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">

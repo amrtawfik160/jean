@@ -30,6 +30,7 @@ import {
   statusConfig,
   type SessionCardProps,
 } from './session-card-utils'
+import { SessionTypeIcon } from './SessionTypeIcon'
 
 export const SessionListRow = forwardRef<HTMLDivElement, SessionCardProps>(
   function SessionListRow(
@@ -102,6 +103,7 @@ export const SessionListRow = forwardRef<HTMLDivElement, SessionCardProps>(
               variant={config.indicatorVariant}
               className="h-2 w-2 shrink-0"
             />
+            <SessionTypeIcon session={card.session} className="h-4 w-4" />
 
             {/* Session name */}
             {isRenaming ? (

@@ -51,6 +51,8 @@ interface BackendModelPickerContentProps {
   commandListClassName?: string
 }
 
+type SidebarTab = CliBackend | 'favorites'
+
 export function BackendModelPickerContent({
   open,
   selectedBackend,
@@ -69,7 +71,7 @@ export function BackendModelPickerContent({
 }: BackendModelPickerContentProps) {
   const [search, setSearch] = useState('')
   const [activeBackend, setActiveBackend] =
-    useState<CliBackend>(selectedBackend)
+    useState<SidebarTab>(selectedBackend)
   const [highlightedValue, setHighlightedValue] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
   const isMobile = useIsMobile()
@@ -164,19 +166,43 @@ export function BackendModelPickerContent({
     [backendModelSections, installedBackends]
   )
 
-  const showSidebar = sidebarBackends.length > 1
+  const favoriteOptions = useMemo(() => {
+    const result: { backend: CliBackend; value: string; label: string }[] = []
+    for (const section of backendModelSections) {
+      for (const option of section.options) {
+        if (favoriteSet.has(favKey(section.backend, option.value))) {
+          result.push({
+            backend: section.backend,
+            value: option.value,
+            label: option.label,
+          })
+        }
+      }
+    }
+    return result
+  }, [backendModelSections, favoriteSet, favKey])
 
-  // Sync active backend with locked selection / when picker opens
+  const showFavoritesTab = !isLocked && favoriteOptions.length > 0
+  const sidebarTabs: SidebarTab[] = useMemo(
+    () =>
+      showFavoritesTab ? ['favorites', ...sidebarBackends] : sidebarBackends,
+    [showFavoritesTab, sidebarBackends]
+  )
+
+  const showSidebar = sidebarTabs.length > 1
+
+  // Sync active backend with locked selection / when picker opens or favorites availability changes
   useEffect(() => {
     if (!open) return
-    if (isLocked) {
-      setActiveBackend(selectedBackend)
-    } else {
-      setActiveBackend(prev =>
-        sidebarBackends.includes(prev) ? prev : selectedBackend
-      )
-    }
-  }, [open, isLocked, selectedBackend, sidebarBackends])
+    setActiveBackend(prev => {
+      if (isLocked) return selectedBackend
+      if (prev === 'favorites')
+        return showFavoritesTab ? 'favorites' : selectedBackend
+      return sidebarBackends.includes(prev as CliBackend)
+        ? prev
+        : selectedBackend
+    })
+  }, [open, isLocked, selectedBackend, sidebarBackends, showFavoritesTab])
 
   // Reset search whenever active backend changes or picker opens
   useEffect(() => {
@@ -185,26 +211,53 @@ export function BackendModelPickerContent({
 
   const activeSection = useMemo(
     () =>
-      backendModelSections.find(section => section.backend === activeBackend),
+      activeBackend === 'favorites'
+        ? undefined
+        : backendModelSections.find(
+            section => section.backend === activeBackend
+          ),
     [backendModelSections, activeBackend]
   )
 
   const filteredOptions = useMemo(() => {
-    if (!activeSection) return []
     const query = search.trim().toLowerCase()
+
+    if (activeBackend === 'favorites') {
+      const filtered = !query
+        ? favoriteOptions
+        : favoriteOptions.filter(option =>
+            `${option.label} ${option.value}`.toLowerCase().includes(query)
+          )
+      return filtered
+    }
+
+    if (!activeSection) return []
     const filtered = !query
       ? activeSection.options
       : activeSection.options.filter(option =>
           `${option.label} ${option.value}`.toLowerCase().includes(query)
         )
-    const favs: typeof filtered = []
-    const rest: typeof filtered = []
+    const favs: { backend: CliBackend; value: string; label: string }[] = []
+    const rest: { backend: CliBackend; value: string; label: string }[] = []
     for (const opt of filtered) {
-      if (favoriteSet.has(favKey(activeBackend, opt.value))) favs.push(opt)
-      else rest.push(opt)
+      const row = {
+        backend: activeBackend as CliBackend,
+        value: opt.value,
+        label: opt.label,
+      }
+      if (favoriteSet.has(favKey(activeBackend as CliBackend, opt.value)))
+        favs.push(row)
+      else rest.push(row)
     }
     return [...favs, ...rest]
-  }, [activeBackend, activeSection, favKey, favoriteSet, search])
+  }, [
+    activeBackend,
+    activeSection,
+    favKey,
+    favoriteSet,
+    favoriteOptions,
+    search,
+  ])
 
   const getOptionCommandValue = useCallback(
     (backend: CliBackend, model: string) => `${backend}:${model}`,
@@ -215,13 +268,14 @@ export function BackendModelPickerContent({
     if (!open) return
     setHighlightedValue(current => {
       const currentStillVisible = filteredOptions.some(
-        option => getOptionCommandValue(activeBackend, option.value) === current
+        option =>
+          getOptionCommandValue(option.backend, option.value) === current
       )
       if (currentStillVisible) return current
 
       const firstOption = filteredOptions[0]
       return firstOption
-        ? getOptionCommandValue(activeBackend, firstOption.value)
+        ? getOptionCommandValue(firstOption.backend, firstOption.value)
         : ''
     })
   }, [activeBackend, filteredOptions, getOptionCommandValue, open])
@@ -230,10 +284,10 @@ export function BackendModelPickerContent({
     () =>
       filteredOptions.find(
         option =>
-          getOptionCommandValue(activeBackend, option.value) ===
+          getOptionCommandValue(option.backend, option.value) ===
           highlightedValue
       ) ?? filteredOptions[0],
-    [activeBackend, filteredOptions, getOptionCommandValue, highlightedValue]
+    [filteredOptions, getOptionCommandValue, highlightedValue]
   )
 
   useEffect(() => {
@@ -273,7 +327,7 @@ export function BackendModelPickerContent({
   )
 
   const handleBackendButtonClick = useCallback(
-    (backend: CliBackend) => {
+    (backend: SidebarTab) => {
       if (isLocked && backend !== selectedBackend) return
       setActiveBackend(backend)
       window.requestAnimationFrame(() => {
@@ -286,19 +340,19 @@ export function BackendModelPickerContent({
   const handleUseHighlightedFastMode = useCallback(() => {
     if (!highlightedOption) return false
 
-    const fastInfo = getModelFastInfo(activeBackend, highlightedOption.value)
+    const targetBackend = highlightedOption.backend
+    const fastInfo = getModelFastInfo(targetBackend, highlightedOption.value)
     if (!fastInfo.supportsFast || !fastInfo.fastModel) return false
 
-    setFastRemembered(activeBackend, fastInfo.baseModel, true)
-    if (selectedBackend === activeBackend) {
+    setFastRemembered(targetBackend, fastInfo.baseModel, true)
+    if (selectedBackend === targetBackend) {
       onModelChange(fastInfo.fastModel)
     } else {
-      onBackendModelChange(activeBackend, fastInfo.fastModel)
+      onBackendModelChange(targetBackend, fastInfo.fastModel)
     }
     onRequestClose()
     return true
   }, [
-    activeBackend,
     highlightedOption,
     onBackendModelChange,
     onModelChange,
@@ -323,22 +377,22 @@ export function BackendModelPickerContent({
   }, [handleUseHighlightedFastMode, open])
 
   useEffect(() => {
-    if (!open || sidebarBackends.length <= 1) return
+    if (!open || sidebarTabs.length <= 1) return
     const handler = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey)) return
       if (event.altKey || event.shiftKey) return
       const match = event.code.match(/^Digit([1-9])$/)
       if (!match) return
       const idx = Number(match[1]) - 1
-      const backend = sidebarBackends[idx]
-      if (!backend) return
+      const tab = sidebarTabs[idx]
+      if (!tab) return
       event.preventDefault()
       event.stopPropagation()
-      handleBackendButtonClick(backend)
+      handleBackendButtonClick(tab)
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [open, sidebarBackends, handleBackendButtonClick])
+  }, [open, sidebarTabs, handleBackendButtonClick])
 
   const showProviderHint =
     Boolean(providerLocked) &&
@@ -348,12 +402,14 @@ export function BackendModelPickerContent({
 
   const placeholder =
     searchPlaceholder ??
-    `Search ${getBackendPlainLabel(activeBackend)} models...`
+    (activeBackend === 'favorites'
+      ? 'Search favorite models...'
+      : `Search ${getBackendPlainLabel(activeBackend)} models...`)
 
   const sidebar = showSidebar ? (
     <SidebarBackends
       orientation={isMobile ? 'horizontal' : 'vertical'}
-      backends={sidebarBackends}
+      tabs={sidebarTabs}
       activeBackend={activeBackend}
       selectedBackend={selectedBackend}
       isLocked={isLocked}
@@ -406,28 +462,38 @@ export function BackendModelPickerContent({
             )}
 
             {filteredOptions.map(option => {
-              const fastInfo = getModelFastInfo(activeBackend, option.value)
+              const rowBackend = option.backend
+              const fastInfo = getModelFastInfo(rowBackend, option.value)
               const supportsFast = Boolean(
                 fastInfo.supportsFast && fastInfo.fastModel
               )
               const isSelectedBase =
-                selectedBackend === activeBackend &&
-                selectedModel === option.value
+                selectedBackend === rowBackend && selectedModel === option.value
               const isSelectedFast =
                 supportsFast &&
-                selectedBackend === activeBackend &&
+                selectedBackend === rowBackend &&
                 selectedModel === fastInfo.fastModel
               const isRowSelected = isSelectedBase || isSelectedFast
               const isFavorite = favoriteSet.has(
-                favKey(activeBackend, option.value)
+                favKey(rowBackend, option.value)
               )
+              const BackendIcon =
+                activeBackend === 'favorites'
+                  ? getBackendIcon(rowBackend)
+                  : null
 
               return (
                 <CommandItem
-                  key={`${activeBackend}-${option.value}`}
-                  value={getOptionCommandValue(activeBackend, option.value)}
-                  onSelect={() => handleSelect(activeBackend, option.value)}
+                  key={`${rowBackend}-${option.value}`}
+                  value={getOptionCommandValue(rowBackend, option.value)}
+                  onSelect={() => handleSelect(rowBackend, option.value)}
                 >
+                  {BackendIcon && (
+                    <BackendIcon
+                      className="mr-2 h-4 w-4 shrink-0 text-muted-foreground"
+                      aria-label={getBackendPlainLabel(rowBackend)}
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="truncate">{option.label}</div>
                     <div className="truncate text-xs text-muted-foreground">
@@ -436,7 +502,7 @@ export function BackendModelPickerContent({
                   </div>
                   <div
                     className="ml-2 grid shrink-0 grid-cols-[5.75rem_1.5rem_1rem] items-center gap-2"
-                    data-testid={`model-actions-${activeBackend}-${option.value}`}
+                    data-testid={`model-actions-${rowBackend}-${option.value}`}
                   >
                     <div className="flex w-[5.75rem] justify-end">
                       {supportsFast && fastInfo.fastModel && (
@@ -461,14 +527,14 @@ export function BackendModelPickerContent({
                                   : fastInfo.fastModel
                                 if (!next) return
                                 setFastRemembered(
-                                  activeBackend,
+                                  rowBackend,
                                   fastInfo.baseModel,
                                   !isSelectedFast
                                 )
-                                if (selectedBackend === activeBackend) {
+                                if (selectedBackend === rowBackend) {
                                   onModelChange(next)
                                 } else {
-                                  onBackendModelChange(activeBackend, next)
+                                  onBackendModelChange(rowBackend, next)
                                 }
                               }}
                               className={cn(
@@ -514,7 +580,7 @@ export function BackendModelPickerContent({
                           onClick={event => {
                             event.preventDefault()
                             event.stopPropagation()
-                            handleToggleFavorite(activeBackend, option.value)
+                            handleToggleFavorite(rowBackend, option.value)
                           }}
                           className={cn(
                             'flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors',
@@ -555,25 +621,25 @@ export function BackendModelPickerContent({
 
 function SidebarBackends({
   orientation,
-  backends,
+  tabs,
   activeBackend,
   selectedBackend,
   isLocked,
   onSelect,
 }: {
   orientation: 'vertical' | 'horizontal'
-  backends: CliBackend[]
-  activeBackend: CliBackend
+  tabs: SidebarTab[]
+  activeBackend: SidebarTab
   selectedBackend: CliBackend
   isLocked: boolean
-  onSelect: (backend: CliBackend) => void
+  onSelect: (tab: SidebarTab) => void
 }) {
   const isVertical = orientation === 'vertical'
   const isMac =
     typeof navigator !== 'undefined' &&
     /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '')
   const modKey = isMac ? '⌘' : '⌃'
-  const showHints = isVertical && backends.length > 1
+  const showHints = isVertical && tabs.length > 1
 
   return (
     <div
@@ -584,15 +650,16 @@ function SidebarBackends({
       role="tablist"
       aria-orientation={orientation}
     >
-      {backends.map((backend, index) => {
-        const Icon = getBackendIcon(backend)
-        const isActive = backend === activeBackend
-        const isDisabled = isLocked && backend !== selectedBackend
-        const label = getBackendPlainLabel(backend)
+      {tabs.map((tab, index) => {
+        const isFavorites = tab === 'favorites'
+        const Icon = isFavorites ? Star : getBackendIcon(tab)
+        const isActive = tab === activeBackend
+        const isDisabled = isLocked && !isFavorites && tab !== selectedBackend
+        const label = isFavorites ? 'Favorites' : getBackendPlainLabel(tab)
         const showHint = showHints && index < 9
 
         return (
-          <Tooltip key={backend}>
+          <Tooltip key={tab}>
             <TooltipTrigger asChild>
               <button
                 type="button"
@@ -600,7 +667,7 @@ function SidebarBackends({
                 aria-selected={isActive}
                 aria-label={label}
                 disabled={isDisabled}
-                onClick={() => onSelect(backend)}
+                onClick={() => onSelect(tab)}
                 className={cn(
                   'group relative flex w-9 shrink-0 flex-col items-center justify-center rounded-md text-muted-foreground transition-colors',
                   showHint ? 'h-auto gap-0.5 py-1' : 'h-9',
@@ -612,7 +679,12 @@ function SidebarBackends({
                     'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-muted-foreground'
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon
+                  className={cn(
+                    'h-4 w-4',
+                    isFavorites && 'fill-yellow-500 text-yellow-500'
+                  )}
+                />
                 {showHint && (
                   <span
                     aria-hidden
@@ -627,7 +699,7 @@ function SidebarBackends({
                     {index + 1}
                   </span>
                 )}
-                {backend === 'cursor' && (
+                {tab === 'cursor' && (
                   <span
                     aria-hidden
                     className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-yellow-500"

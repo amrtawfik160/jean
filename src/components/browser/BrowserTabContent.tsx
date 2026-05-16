@@ -3,6 +3,12 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { browserBackend } from '@/hooks/useBrowserPane'
 import { useBrowserStore } from '@/store/browser-store'
 import { isNativeApp } from '@/lib/environment'
+import {
+  CUSTOM_PRESET_ID,
+  getPreset,
+  isResponsive,
+  RESPONSIVE_PRESET_ID,
+} from './device-presets'
 
 interface BrowserTabContentProps {
   tabId: string
@@ -64,6 +70,70 @@ export const BrowserTabContent = memo(function BrowserTabContent({
         ) ?? ''
       ]?.find(t => t.id === tabId)?.url ?? ''
   )
+
+  // Device-emulation state. Selecting a preset recreates the webview to pick
+  // up the new user agent — see effect below.
+  const presetId = useBrowserStore(
+    state => state.devicePresetByTab[tabId] ?? RESPONSIVE_PRESET_ID
+  )
+  const customSize = useBrowserStore(state => state.customSizeByTab[tabId])
+  const preset = getPreset(presetId)
+  const isCustom = presetId === CUSTOM_PRESET_ID
+  const responsive = isResponsive(presetId)
+  const effectiveWidth = responsive
+    ? null
+    : isCustom
+      ? (customSize?.width ?? null)
+      : preset.width
+  const effectiveHeight = responsive
+    ? null
+    : isCustom
+      ? (customSize?.height ?? null)
+      : preset.height
+  const effectiveUa = preset.userAgent
+
+  // Re-create the underlying webview whenever the UA changes (preset switch).
+  // We can't mutate UA on a live webview — Tauri sets it at builder time only.
+  const lastAppliedUaRef = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (!isNativeApp()) return
+    if (!initializedRef.current) {
+      lastAppliedUaRef.current = effectiveUa
+      return
+    }
+    if (lastAppliedUaRef.current === effectiveUa) return
+    lastAppliedUaRef.current = effectiveUa
+    let cancelled = false
+    void (async () => {
+      try {
+        // Preserve the current page across UA swap.
+        let currentUrl = initialUrl
+        try {
+          currentUrl = await browserBackend.getUrl(tabId)
+        } catch {
+          // ignore; fall back to initialUrl
+        }
+        await browserBackend.close(tabId)
+        if (cancelled) return
+        initializedRef.current = false
+        const next = measure()
+        if (next && currentUrl) {
+          await browserBackend.create(tabId, currentUrl, next, effectiveUa)
+          initializedRef.current = true
+          lastBoundsRef.current = next
+          if (isActiveRef.current) {
+            await browserBackend.setVisible(tabId, true)
+          }
+        }
+      } catch (err) {
+        console.error('[browser] UA recreate failed:', err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveUa, tabId])
 
   // Returns PHYSICAL pixels. Rust side uses PhysicalPosition/PhysicalSize
   // because Tauri's scale_factor() can disagree with WKWebView's
@@ -169,8 +239,9 @@ export const BrowserTabContent = memo(function BrowserTabContent({
         if (exists) {
           await browserBackend.setBounds(tabId, bounds)
         } else if (initialUrl) {
-          await browserBackend.create(tabId, initialUrl, bounds)
+          await browserBackend.create(tabId, initialUrl, bounds, effectiveUa)
         }
+        lastAppliedUaRef.current = effectiveUa
         initializedRef.current = true
         if (isActive) {
           await browserBackend.setVisible(tabId, true)
@@ -259,6 +330,28 @@ export const BrowserTabContent = memo(function BrowserTabContent({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // When a device preset is active, the webview is sized to the preset and
+  // centered inside a darker pane so the user sees a "device window". The
+  // placeholder still drives the webview bounds — ResizeObserver fires when
+  // the window resizes (the wrapper caps the placeholder to the preset).
+  if (effectiveWidth && effectiveHeight) {
+    return (
+      <div className="flex h-full w-full items-center justify-center overflow-auto bg-muted/40 p-3">
+        <div
+          ref={placeholderRef}
+          className="rounded-md shadow-lg ring-1 ring-border bg-background"
+          style={{
+            width: `${effectiveWidth}px`,
+            height: `${effectiveHeight}px`,
+            maxWidth: '100%',
+            maxHeight: '100%',
+          }}
+          data-browser-tab-id={tabId}
+        />
+      </div>
+    )
+  }
 
   return (
     <div

@@ -4,6 +4,7 @@ import {
   ArrowUp,
   ChevronDown,
   MoreHorizontal,
+  Play,
   Plus,
 } from '@/components/icons'
 import { convertFileSrc, convertProjectFileSrc } from '@/lib/transport'
@@ -14,6 +15,7 @@ import { isBaseSession } from '@/types/projects'
 import { useProjectsStore } from '@/store/projects-store'
 import { useChatStore } from '@/store/chat-store'
 import { useUIStore } from '@/store/ui-store'
+import { useTerminalStore } from '@/store/terminal-store'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useWorktrees, useAppDataDir } from '@/services/projects'
 import {
@@ -27,6 +29,7 @@ import { NewIssuesBadge } from '@/components/shared/NewIssuesBadge'
 import { OpenPRsBadge } from '@/components/shared/OpenPRsBadge'
 import { FailedRunsBadge } from '@/components/shared/FailedRunsBadge'
 import { SecurityAlertsBadge } from '@/components/shared/SecurityAlertsBadge'
+import { StatusIndicator } from '@/components/ui/status-indicator'
 import {
   Tooltip,
   TooltipTrigger,
@@ -34,12 +37,20 @@ import {
 } from '@/components/ui/tooltip'
 import { WorktreeList } from './WorktreeList'
 import { ProjectContextMenu } from './ProjectContextMenu'
+import {
+  getProjectTerminalState,
+  projectHasLoadingWorktree,
+} from './project-sidebar-state'
 
 interface ProjectTreeItemProps {
   project: Project
+  hasUnreadFinishedSession?: boolean
 }
 
-export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
+export function ProjectTreeItem({
+  project,
+  hasUnreadFinishedSession = false,
+}: ProjectTreeItemProps) {
   const isMobile = useIsMobile()
   const {
     expandedProjectIds,
@@ -76,6 +87,32 @@ export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
 
   // Check if base session exists
   const hasBaseSession = worktrees.some(w => isBaseSession(w))
+  const hasLoadingWorktree = useChatStore(state =>
+    projectHasLoadingWorktree(
+      worktrees,
+      state.worktreeLoadingOperations,
+      state.sendingSessionIds,
+      state.sessionWorktreeMap
+    )
+  )
+  const hasRunningProjectTerminal = useTerminalStore(
+    state =>
+      getProjectTerminalState(
+        worktrees,
+        state.terminals,
+        state.runningTerminals,
+        state.failedTerminals
+      ).hasRunningTerminal
+  )
+  const hasFailedProjectTerminal = useTerminalStore(
+    state =>
+      getProjectTerminalState(
+        worktrees,
+        state.terminals,
+        state.runningTerminals,
+        state.failedTerminals
+      ).hasFailedTerminal
+  )
 
   // Get base branch status from any worktree (all have it)
   const firstWorktree = worktrees[0]
@@ -168,7 +205,12 @@ export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
             'transition-[background-color,color] duration-150',
             isSelected
               ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r before:bg-primary'
-              : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+              : hasUnreadFinishedSession
+                ? 'bg-emerald-500/10 text-sidebar-accent-foreground ring-1 ring-inset ring-emerald-500/25 hover:bg-emerald-500/15'
+                : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+            isSelected &&
+              hasUnreadFinishedSession &&
+              'ring-1 ring-inset ring-emerald-500/25'
           )}
           onClick={handleClick}
         >
@@ -189,8 +231,49 @@ export function ProjectTreeItem({ project }: ProjectTreeItemProps) {
           )}
 
           {/* Name + Chevron */}
-          <span className="flex flex-1 items-center gap-0.5 truncate text-sm">
+          <span className="flex min-w-0 flex-1 items-center gap-1 truncate text-sm">
             <span className="truncate">{project.name}</span>
+            {hasLoadingWorktree && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex shrink-0"
+                    aria-label={`${project.name} has a loading worktree`}
+                  >
+                    <StatusIndicator
+                      status="running"
+                      variant="loading"
+                      className="h-2 w-2"
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Project has a loading worktree</TooltipContent>
+              </Tooltip>
+            )}
+            {(hasRunningProjectTerminal || hasFailedProjectTerminal) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex shrink-0"
+                    aria-label={`${project.name} has an active terminal`}
+                  >
+                    <Play
+                      className={cn(
+                        'h-2.5 w-2.5 shrink-0 fill-none',
+                        hasFailedProjectTerminal
+                          ? 'text-red-500'
+                          : 'text-amber-500 dark:text-yellow-400 animate-icon-glow'
+                      )}
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {hasFailedProjectTerminal
+                    ? 'Project has a failed terminal'
+                    : 'Project has an active terminal'}
+                </TooltipContent>
+              </Tooltip>
+            )}
             {hasWorktrees && (
               <button
                 className={cn(

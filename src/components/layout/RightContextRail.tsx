@@ -33,7 +33,8 @@ interface RightContextRailProps {
 }
 
 const PR_STATUS_TINT: Record<string, string> = {
-  draft: 'bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30',
+  draft:
+    'bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30',
   open: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
   review: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
   merged: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
@@ -147,7 +148,11 @@ export function RightContextRail({ width = 280 }: RightContextRailProps) {
                     icon={<GitBranch className="size-3.5" />}
                     label={worktree.branch}
                     truncate
-                    badge={worktree.base_branch ? `from ${worktree.base_branch}` : undefined}
+                    badge={
+                      worktree.base_branch
+                        ? `from ${worktree.base_branch}`
+                        : undefined
+                    }
                   />
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {uncommittedAdded > 0 && (
@@ -205,9 +210,7 @@ export function RightContextRail({ width = 280 }: RightContextRailProps) {
                         href={worktree.pr_url}
                         pill={
                           worktree.cached_pr_status ? (
-                            <StatusPill
-                              status={worktree.cached_pr_status}
-                            />
+                            <StatusPill status={worktree.cached_pr_status} />
                           ) : null
                         }
                       />

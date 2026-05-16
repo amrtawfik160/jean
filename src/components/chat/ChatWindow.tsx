@@ -106,6 +106,7 @@ import { FileEditsDiffModal, type FileEdit } from './FileEditsDiffModal'
 import { FilePreview } from './FilePreview'
 import { ContextPreview } from './ContextPreview'
 import { ChatInput } from './ChatInput'
+import { PromptStarters } from './PromptStarters'
 import { SessionDebugPanel } from './SessionDebugPanel'
 import { ChatToolbar } from './ChatToolbar'
 import { ReviewResultsPanel } from './ReviewResultsPanel'
@@ -935,29 +936,31 @@ export function ChatWindow({
   const mcpServersDataRef = useRef<McpServerInfo[]>(availableMcpServers)
   const selectedBackendRef = useRef(selectedBackend)
 
-  // Keep refs in sync with current values (runs on every render, but cheap)
-  activeSessionIdRef.current = activeSessionId
-  activeWorktreeIdRef.current = activeWorktreeId
-  activeWorktreePathRef.current = activeWorktreePath
-  selectedModelRef.current = selectedModel
-  buildModelRef.current = preferences?.build_model ?? null
-  yoloModelRef.current = preferences?.yolo_model ?? null
-  buildBackendRef.current = preferences?.build_backend ?? null
-  buildThinkingLevelRef.current = preferences?.build_thinking_level ?? null
-  buildEffortLevelRef.current = preferences?.build_effort_level ?? null
-  yoloBackendRef.current = preferences?.yolo_backend ?? null
-  yoloThinkingLevelRef.current = preferences?.yolo_thinking_level ?? null
-  yoloEffortLevelRef.current = preferences?.yolo_effort_level ?? null
-  selectedProviderRef.current = selectedProvider
-  selectedThinkingLevelRef.current = selectedThinkingLevel
-  selectedEffortLevelRef.current = selectedEffortLevel
-  useAdaptiveThinkingRef.current = useAdaptiveThinkingFlag
-  isCodexBackendRef.current = isCodexBackend
-  executionModeRef.current = executionMode
-  projectIdRef.current = worktree?.project_id ?? null
-  enabledMcpServersRef.current = enabledMcpServers
-  mcpServersDataRef.current = availableMcpServers
-  selectedBackendRef.current = selectedBackend
+  // Keep refs in sync with current values outside render.
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId
+    activeWorktreeIdRef.current = activeWorktreeId
+    activeWorktreePathRef.current = activeWorktreePath
+    selectedModelRef.current = selectedModel
+    buildModelRef.current = preferences?.build_model ?? null
+    yoloModelRef.current = preferences?.yolo_model ?? null
+    buildBackendRef.current = preferences?.build_backend ?? null
+    buildThinkingLevelRef.current = preferences?.build_thinking_level ?? null
+    buildEffortLevelRef.current = preferences?.build_effort_level ?? null
+    yoloBackendRef.current = preferences?.yolo_backend ?? null
+    yoloThinkingLevelRef.current = preferences?.yolo_thinking_level ?? null
+    yoloEffortLevelRef.current = preferences?.yolo_effort_level ?? null
+    selectedProviderRef.current = selectedProvider
+    selectedThinkingLevelRef.current = selectedThinkingLevel
+    selectedEffortLevelRef.current = selectedEffortLevel
+    useAdaptiveThinkingRef.current = useAdaptiveThinkingFlag
+    isCodexBackendRef.current = isCodexBackend
+    executionModeRef.current = executionMode
+    projectIdRef.current = worktree?.project_id ?? null
+    enabledMcpServersRef.current = enabledMcpServers
+    mcpServersDataRef.current = availableMcpServers
+    selectedBackendRef.current = selectedBackend
+  })
 
   // Stable callback for useMessageHandlers to build MCP config from current refs
   const getMcpConfig = useCallback(
@@ -2454,11 +2457,30 @@ export function ChatWindow({
                                 {messages.length === 0 &&
                                   !isSending &&
                                   activeSessionId && (
-                                    <RecentContexts
-                                      sessionId={activeSessionId}
-                                      queryClient={queryClient}
-                                      projectId={worktree?.project_id}
-                                    />
+                                    <>
+                                      <RecentContexts
+                                        sessionId={activeSessionId}
+                                        queryClient={queryClient}
+                                        projectId={worktree?.project_id}
+                                      />
+                                      <PromptStarters
+                                        onPick={template => {
+                                          const el = inputRef.current
+                                          if (!el) return
+                                          el.value = template
+                                          el.dispatchEvent(
+                                            new Event('input', {
+                                              bubbles: true,
+                                            })
+                                          )
+                                          el.focus()
+                                          el.setSelectionRange(
+                                            template.length,
+                                            template.length
+                                          )
+                                        }}
+                                      />
+                                    </>
                                   )}
                                 {preferences?.compact_chat_view_enabled ? (
                                   <CompactMessageList
@@ -2839,12 +2861,12 @@ export function ChatWindow({
                             ref={formRef}
                             onSubmit={handleSubmit}
                             className={cn(
-                              'group/promptform relative overflow-hidden border-t border-border/60 bg-surface-1',
+                              'group/promptform glass-quiet relative overflow-hidden',
                               'transition-[background-color,border-color] duration-200',
-                              'sm:rounded-xl sm:border',
-                              'focus-within:border-border focus-within:bg-surface-2',
+                              'sm:rounded-xl',
+                              'focus-within:border-[color:var(--glass-rim-strong)]',
                               isDragging &&
-                                'border-primary/60 bg-primary/5'
+                                'glass-tint-primary border-primary/60'
                             )}
                             style={
                               isMobile
@@ -2976,9 +2998,7 @@ export function ChatWindow({
                                 activeProjectId={worktree?.project_id ?? null}
                                 isSending={isSending}
                                 executionMode={executionMode}
-                                canSwitchBackendWithTab={
-                                  (session?.messages?.length ?? 0) === 0
-                                }
+                                canSwitchBackendWithTab={true}
                                 focusChatShortcut={focusChatShortcut}
                                 onSubmit={handleSubmit}
                                 onCancel={handleCancel}
@@ -3009,14 +3029,10 @@ export function ChatWindow({
                                 hasInputValue={hasInputValue}
                                 executionMode={executionMode}
                                 selectedBackend={selectedBackend}
-                                sessionHasMessages={
-                                  (session?.messages?.length ?? 0) > 0
-                                }
+                                sessionHasMessages={false}
                                 selectedModel={selectedModel}
                                 selectedProvider={selectedProvider}
-                                providerLocked={
-                                  (session?.messages?.length ?? 0) > 0
-                                }
+                                providerLocked={false}
                                 selectedThinkingLevel={selectedThinkingLevel}
                                 selectedEffortLevel={selectedEffortLevel}
                                 useAdaptiveThinking={useAdaptiveThinkingFlag}

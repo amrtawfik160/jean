@@ -527,6 +527,159 @@ describe('BackendModelPickerContent', () => {
     )
   })
 
+  it('shows a Favorites tab as the first tab when favourites exist', () => {
+    mockFavoriteModels = ['claude:claude-opus-4-7[1m]', 'codex:gpt-5.5']
+
+    render(
+      <BackendModelPickerContent
+        open
+        selectedBackend="claude"
+        selectedModel="claude-opus-4-7[1m]"
+        selectedProvider={null}
+        installedBackends={['claude', 'codex']}
+        customCliProfiles={[]}
+        onModelChange={vi.fn()}
+        onBackendModelChange={vi.fn()}
+        onRequestClose={vi.fn()}
+      />
+    )
+
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs[0]).toHaveAccessibleName('Favorites')
+    expect(tabs[1]).toHaveAccessibleName('Claude')
+    expect(tabs[2]).toHaveAccessibleName('Codex')
+  })
+
+  it('hides Favorites tab when no favourites are saved', () => {
+    render(
+      <BackendModelPickerContent
+        open
+        selectedBackend="claude"
+        selectedModel="claude-opus-4-7[1m]"
+        selectedProvider={null}
+        installedBackends={['claude', 'codex']}
+        customCliProfiles={[]}
+        onModelChange={vi.fn()}
+        onBackendModelChange={vi.fn()}
+        onRequestClose={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('tab', { name: 'Favorites' })).toBeNull()
+  })
+
+  it('lists favourites across backends when Favorites tab is selected', async () => {
+    const user = userEvent.setup()
+    mockFavoriteModels = ['claude:claude-opus-4-7[1m]', 'codex:gpt-5.5']
+
+    render(
+      <BackendModelPickerContent
+        open
+        selectedBackend="claude"
+        selectedModel="claude-opus-4-7[1m]"
+        selectedProvider={null}
+        installedBackends={['claude', 'codex']}
+        customCliProfiles={[]}
+        onModelChange={vi.fn()}
+        onBackendModelChange={vi.fn()}
+        onRequestClose={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    expect(
+      screen.getByPlaceholderText(/search favorite models/i)
+    ).toBeInTheDocument()
+
+    const labels = screen
+      .getAllByRole('option')
+      .map(opt => opt.textContent ?? '')
+    expect(labels.some(t => t.includes('claude-opus-4-7[1m]'))).toBe(true)
+    expect(labels.some(t => t.includes('gpt-5.5'))).toBe(true)
+  })
+
+  it('switches to the favourite model and its backend when selected from Favorites', async () => {
+    const user = userEvent.setup()
+    const onModelChange = vi.fn()
+    const onBackendModelChange = vi.fn()
+    const onRequestClose = vi.fn()
+    mockFavoriteModels = ['codex:gpt-5.4']
+
+    render(
+      <BackendModelPickerContent
+        open
+        selectedBackend="claude"
+        selectedModel="claude-opus-4-7[1m]"
+        selectedProvider={null}
+        installedBackends={['claude', 'codex']}
+        customCliProfiles={[]}
+        onModelChange={onModelChange}
+        onBackendModelChange={onBackendModelChange}
+        onRequestClose={onRequestClose}
+      />
+    )
+
+    await user.click(screen.getByRole('tab', { name: 'Favorites' }))
+    await user.click(screen.getByText('GPT 5.4'))
+
+    expect(onBackendModelChange).toHaveBeenCalledWith('codex', 'gpt-5.4')
+    expect(onModelChange).not.toHaveBeenCalled()
+    expect(onRequestClose).toHaveBeenCalled()
+  })
+
+  it('Cmd+1 activates the Favorites tab when it is present', async () => {
+    const user = userEvent.setup()
+    mockFavoriteModels = ['codex:gpt-5.5']
+
+    render(
+      <BackendModelPickerContent
+        open
+        selectedBackend="claude"
+        selectedModel="claude-opus-4-7[1m]"
+        selectedProvider={null}
+        installedBackends={['claude', 'codex']}
+        customCliProfiles={[]}
+        onModelChange={vi.fn()}
+        onBackendModelChange={vi.fn()}
+        onRequestClose={vi.fn()}
+      />
+    )
+
+    expect(screen.getByRole('tab', { name: 'Claude' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+
+    await user.keyboard('{Meta>}1{/Meta}')
+
+    expect(screen.getByRole('tab', { name: 'Favorites' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+  })
+
+  it('hides Favorites tab on locked sessions', () => {
+    mockFavoriteModels = ['claude:claude-opus-4-7[1m]', 'codex:gpt-5.5']
+
+    render(
+      <BackendModelPickerContent
+        open
+        sessionHasMessages
+        selectedBackend="codex"
+        selectedModel="gpt-5.4"
+        selectedProvider={null}
+        installedBackends={['claude', 'codex']}
+        customCliProfiles={[]}
+        onModelChange={vi.fn()}
+        onBackendModelChange={vi.fn()}
+        onRequestClose={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('tab', { name: 'Favorites' })).toBeNull()
+  })
+
   it('disables non-selected backend tabs once the session has messages', () => {
     render(
       <BackendModelPickerContent

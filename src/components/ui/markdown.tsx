@@ -28,6 +28,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { useChatStore } from '@/store/chat-store'
+import { usePreferences } from '@/services/preferences'
 
 interface MarkdownProps {
   children: string
@@ -327,27 +328,27 @@ function TableBlock({ children, tableOffset }: TableBlockProps) {
 const components: Components = {
   // Headers - clear hierarchy with generous spacing
   h1: ({ children }) => (
-    <div className="mt-6 mb-4 text-xl sm:text-3xl sm:mt-8 sm:mb-5 font-bold text-foreground first:mt-0">
+    <div className="mt-6 mb-4 text-xl sm:text-3xl sm:mt-8 sm:mb-5 font-bold text-sky-600 dark:text-sky-400 first:mt-0">
       {children}
     </div>
   ),
   h2: ({ children }) => (
-    <div className="mt-6 mb-3 text-lg sm:text-2xl sm:mt-8 sm:mb-4 font-bold text-foreground first:mt-0">
+    <div className="mt-6 mb-3 text-lg sm:text-2xl sm:mt-8 sm:mb-4 font-bold text-violet-600 dark:text-violet-400 first:mt-0">
       {children}
     </div>
   ),
   h3: ({ children }) => (
-    <div className="mt-5 mb-2 text-base sm:text-xl sm:mt-7 sm:mb-3 font-semibold text-foreground first:mt-0">
+    <div className="mt-5 mb-2 text-base sm:text-xl sm:mt-7 sm:mb-3 font-semibold text-emerald-600 dark:text-emerald-400 first:mt-0">
       {children}
     </div>
   ),
   h4: ({ children }) => (
-    <div className="mt-4 mb-2 text-sm sm:text-lg sm:mt-6 sm:mb-2.5 font-semibold text-foreground first:mt-0">
+    <div className="mt-4 mb-2 text-sm sm:text-lg sm:mt-6 sm:mb-2.5 font-semibold text-amber-600 dark:text-amber-400 first:mt-0">
       {children}
     </div>
   ),
   h5: ({ children }) => (
-    <div className="mt-4 mb-1.5 text-sm sm:text-base sm:mt-5 sm:mb-2 font-medium text-foreground first:mt-0">
+    <div className="mt-4 mb-1.5 text-sm sm:text-base sm:mt-5 sm:mb-2 font-medium text-pink-600 dark:text-pink-400 first:mt-0">
       {children}
     </div>
   ),
@@ -359,9 +360,13 @@ const components: Components = {
 
   // Emphasis
   strong: ({ children }) => (
-    <strong className="font-semibold">{children}</strong>
+    <strong className="font-bold text-amber-600 dark:text-amber-300">
+      {children}
+    </strong>
   ),
-  em: ({ children }) => <em className="italic">{children}</em>,
+  em: ({ children }) => (
+    <em className="italic text-violet-600 dark:text-violet-300">{children}</em>
+  ),
 
   // Code - inline and blocks
   code: ({ children, className }) => {
@@ -372,7 +377,7 @@ const components: Components = {
     }
     // Inline code
     return (
-      <code className="rounded-md bg-muted px-1.5 py-0.5 text-[0.875em]">
+      <code className="rounded-md border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[0.875em] font-mono text-rose-600 dark:text-rose-300">
         {children}
       </code>
     )
@@ -394,7 +399,7 @@ const components: Components = {
   a: ({ href, children }) => (
     <a
       href={href}
-      className="underline underline-offset-2 hover:text-foreground"
+      className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:text-sky-500"
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -470,6 +475,62 @@ const components: Components = {
   td: ({ children }) => <td className="px-4 py-2.5">{children}</td>,
 }
 
+// Plain variant — same structure as `components` but neutral colors only.
+// Used when the user disables markdown color highlights in preferences.
+const plainComponents: Components = {
+  ...components,
+  h1: ({ children }) => (
+    <div className="mt-6 mb-4 text-xl sm:text-3xl sm:mt-8 sm:mb-5 font-bold text-foreground first:mt-0">
+      {children}
+    </div>
+  ),
+  h2: ({ children }) => (
+    <div className="mt-6 mb-3 text-lg sm:text-2xl sm:mt-8 sm:mb-4 font-bold text-foreground first:mt-0">
+      {children}
+    </div>
+  ),
+  h3: ({ children }) => (
+    <div className="mt-5 mb-2 text-base sm:text-xl sm:mt-7 sm:mb-3 font-semibold text-foreground first:mt-0">
+      {children}
+    </div>
+  ),
+  h4: ({ children }) => (
+    <div className="mt-4 mb-2 text-sm sm:text-lg sm:mt-6 sm:mb-2.5 font-semibold text-foreground first:mt-0">
+      {children}
+    </div>
+  ),
+  h5: ({ children }) => (
+    <div className="mt-4 mb-1.5 text-sm sm:text-base sm:mt-5 sm:mb-2 font-medium text-foreground first:mt-0">
+      {children}
+    </div>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-bold text-foreground">{children}</strong>
+  ),
+  em: ({ children }) => <em className="italic">{children}</em>,
+  code: ({ children, className }) => {
+    const isBlock = className?.startsWith('language-')
+    if (isBlock) {
+      return <code className={className}>{children}</code>
+    }
+    return (
+      <code className="rounded-md border border-border bg-accent/60 px-1.5 py-0.5 text-[0.875em] font-mono text-foreground">
+        {children}
+      </code>
+    )
+  },
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      className="underline underline-offset-2 hover:text-foreground"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+}
+
 const streamingComponents: Components = {
   ...components,
   p: ({ children }) => (
@@ -531,11 +592,30 @@ const Markdown = memo(function Markdown({
     [messageId, sessionId]
   )
 
-  const componentsToUse = streaming
-    ? streamingComponents
-    : compact
+  const { data: preferences } = usePreferences()
+  const colorsEnabled = preferences?.markdown_color_highlights_enabled ?? true
+
+  let componentsToUse: Components
+  if (streaming) {
+    componentsToUse = colorsEnabled
+      ? streamingComponents
+      : { ...streamingComponents, ...plainComponents, p: streamingComponents.p }
+  } else if (compact) {
+    componentsToUse = colorsEnabled
       ? compactComponents
-      : components
+      : {
+          ...compactComponents,
+          ...plainComponents,
+          h1: compactComponents.h1,
+          h2: compactComponents.h2,
+          h3: compactComponents.h3,
+          h4: compactComponents.h4,
+          h5: compactComponents.h5,
+          h6: compactComponents.h6,
+        }
+  } else {
+    componentsToUse = colorsEnabled ? components : plainComponents
+  }
 
   return (
     <div className={cn('markdown leading-relaxed break-words', className)}>

@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { generateId } from '@/lib/uuid'
-import type { BrowserTab, ModalBrowserDockMode } from '@/types/browser'
+import type {
+  BrowserTab,
+  CustomDeviceSize,
+  ModalBrowserDockMode,
+} from '@/types/browser'
+import { RESPONSIVE_PRESET_ID } from '@/components/browser/device-presets'
 import { useTerminalStore } from './terminal-store'
 
 // Opaque white data: URL instead of about:blank — WKWebView renders about:blank
@@ -39,6 +44,11 @@ interface BrowserState {
   // Bottom panel (Phase 3)
   bottomPanelOpen: Record<string, boolean>
   bottomPanelHeight: number
+
+  // DevTools — per-tab device emulation + inspector toggle
+  devicePresetByTab: Record<string, string>
+  customSizeByTab: Record<string, CustomDeviceSize>
+  inspectModeByTab: Record<string, boolean>
 
   // Selectors
   getTabs: (worktreeId: string) => BrowserTab[]
@@ -80,6 +90,11 @@ interface BrowserState {
   setBottomPanelOpen: (worktreeId: string, open: boolean) => void
   toggleBottomPanel: (worktreeId: string) => void
   setBottomPanelHeight: (height: number) => void
+
+  // DevTools actions
+  setDevicePreset: (tabId: string, presetId: string) => void
+  setCustomSize: (tabId: string, size: CustomDeviceSize) => void
+  setInspectMode: (tabId: string, on: boolean) => void
 }
 
 function findWorktreeForTab(
@@ -117,6 +132,9 @@ export const useBrowserStore = create<BrowserState>((set, get) => ({
   modalHeight: DEFAULT_MODAL_HEIGHT,
   bottomPanelOpen: {},
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+  devicePresetByTab: {},
+  customSizeByTab: {},
+  inspectModeByTab: {},
 
   getTabs: worktreeId => get().tabs[worktreeId] ?? [],
 
@@ -339,4 +357,41 @@ export const useBrowserStore = create<BrowserState>((set, get) => ({
     set(state =>
       state.bottomPanelHeight === height ? state : { bottomPanelHeight: height }
     ),
+
+  setDevicePreset: (tabId, presetId) =>
+    set(state => {
+      const current = state.devicePresetByTab[tabId] ?? RESPONSIVE_PRESET_ID
+      if (current === presetId) return state
+      return {
+        devicePresetByTab: {
+          ...state.devicePresetByTab,
+          [tabId]: presetId,
+        },
+      }
+    }),
+
+  setCustomSize: (tabId, size) =>
+    set(state => {
+      const existing = state.customSizeByTab[tabId]
+      if (
+        existing &&
+        existing.width === size.width &&
+        existing.height === size.height &&
+        existing.dpr === size.dpr
+      ) {
+        return state
+      }
+      return {
+        customSizeByTab: { ...state.customSizeByTab, [tabId]: size },
+      }
+    }),
+
+  setInspectMode: (tabId, on) =>
+    set(state => {
+      const current = state.inspectModeByTab[tabId] ?? false
+      if (current === on) return state
+      return {
+        inspectModeByTab: { ...state.inspectModeByTab, [tabId]: on },
+      }
+    }),
 }))

@@ -227,6 +227,15 @@ struct CompactedEvent {
     metadata: CompactMetadata,
 }
 
+#[derive(serde::Serialize, Clone)]
+struct TokenUsageEvent {
+    session_id: String,
+    worktree_id: String,
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_input_tokens: u64,
+}
+
 // =============================================================================
 // Detached Claude CLI execution
 // =============================================================================
@@ -1664,24 +1673,40 @@ pub fn tail_claude_output(
 
                     // Extract token usage data
                     if let Some(usage_obj) = msg.get("usage") {
+                        let input_tokens = usage_obj
+                            .get("input_tokens")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let output_tokens = usage_obj
+                            .get("output_tokens")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let cache_read_input_tokens = usage_obj
+                            .get("cache_read_input_tokens")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let cache_creation_input_tokens = usage_obj
+                            .get("cache_creation_input_tokens")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
                         usage = Some(UsageData {
-                            input_tokens: usage_obj
-                                .get("input_tokens")
-                                .and_then(|v| v.as_u64())
-                                .unwrap_or(0),
-                            output_tokens: usage_obj
-                                .get("output_tokens")
-                                .and_then(|v| v.as_u64())
-                                .unwrap_or(0),
-                            cache_read_input_tokens: usage_obj
-                                .get("cache_read_input_tokens")
-                                .and_then(|v| v.as_u64())
-                                .unwrap_or(0),
-                            cache_creation_input_tokens: usage_obj
-                                .get("cache_creation_input_tokens")
-                                .and_then(|v| v.as_u64())
-                                .unwrap_or(0),
+                            input_tokens,
+                            output_tokens,
+                            cache_read_input_tokens,
+                            cache_creation_input_tokens,
                         });
+                        // Notify the context popover so it can update without
+                        // waiting for the next poll of get_session_debug_info.
+                        let _ = app.emit_all(
+                            "chat:token_usage",
+                            &TokenUsageEvent {
+                                session_id: session_id.to_string(),
+                                worktree_id: worktree_id.to_string(),
+                                input_tokens,
+                                output_tokens,
+                                cache_read_input_tokens,
+                            },
+                        );
                         log::trace!(
                             "Token usage: input={}, output={}, cache_read={}, cache_create={}",
                             usage.as_ref().map(|u| u.input_tokens).unwrap_or(0),

@@ -127,6 +127,8 @@ pub struct AppPreferences {
     pub syntax_theme_dark: String, // Syntax highlighting theme for dark mode
     #[serde(default = "default_syntax_theme_light")]
     pub syntax_theme_light: String, // Syntax highlighting theme for light mode
+    #[serde(default = "default_markdown_color_highlights_enabled")]
+    pub markdown_color_highlights_enabled: bool, // Color-tint markdown headings/bold/italic/inline-code in previews
     #[serde(default = "default_parallel_execution_prompt_enabled")]
     pub parallel_execution_prompt_enabled: bool, // Add system prompt to encourage parallel sub-agent execution
     #[serde(default = "default_compact_chat_view_enabled")]
@@ -409,6 +411,10 @@ fn default_syntax_theme_dark() -> String {
 
 fn default_syntax_theme_light() -> String {
     "github-light".to_string()
+}
+
+fn default_markdown_color_highlights_enabled() -> bool {
+    true
 }
 
 fn default_file_edit_mode() -> String {
@@ -1498,6 +1504,7 @@ impl Default for AppPreferences {
             archive_retention_days: default_archive_retention_days(),
             syntax_theme_dark: default_syntax_theme_dark(),
             syntax_theme_light: default_syntax_theme_light(),
+            markdown_color_highlights_enabled: default_markdown_color_highlights_enabled(),
             parallel_execution_prompt_enabled: default_parallel_execution_prompt_enabled(),
             compact_chat_view_enabled: default_compact_chat_view_enabled(),
             magic_prompts: MagicPrompts::default(),
@@ -3370,9 +3377,13 @@ pub fn run() {
             terminal::get_active_terminals,
             terminal::has_active_terminal,
             terminal::get_run_scripts,
+            terminal::get_package_json_scripts,
             terminal::get_ports,
             terminal::get_terminal_listening_ports,
             terminal::kill_all_terminals,
+            terminal::get_terminal_buffer,
+            terminal::ask_terminal_ai,
+            terminal::suggest_terminal_command,
             // Browser commands (native-only — not exposed via http_server::dispatch)
             browser::browser_create,
             browser::browser_navigate,
@@ -3388,6 +3399,19 @@ pub fn run() {
             browser::browser_report_title,
             browser::get_active_browser_tabs,
             browser::has_active_browser_tab,
+            // Browser devtools
+            browser::browser_capture_visible,
+            browser::browser_capture_full_page,
+            browser::browser_capture_chunk,
+            browser::browser_capture_abort,
+            browser::browser_enter_inspect_mode,
+            browser::browser_exit_inspect_mode,
+            browser::browser_report_element_selection,
+            browser::browser_inspector_cancelled,
+            browser::browser_open_devtools,
+            browser::browser_close_devtools,
+            browser::browser_devtools_available,
+            browser::browser_save_annotated_image,
             // Chat commands - Session management
             chat::get_sessions,
             chat::list_all_sessions,
@@ -3398,6 +3422,7 @@ pub fn run() {
             chat::rename_session,
             chat::regenerate_session_name,
             chat::update_session_state,
+            chat::update_native_terminal_session_run_status,
             chat::close_session,
             chat::archive_session,
             chat::unarchive_session,

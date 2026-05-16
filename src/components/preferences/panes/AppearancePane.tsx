@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -133,6 +134,21 @@ export const AppearancePane: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+          </InlineField>
+
+          <InlineField
+            label="Markdown color highlights"
+            description="Tint headings, bold, italic and inline code in markdown previews"
+          >
+            <Switch
+              checked={preferences?.markdown_color_highlights_enabled ?? true}
+              onCheckedChange={checked =>
+                patchPreferences.mutate({
+                  markdown_color_highlights_enabled: checked,
+                })
+              }
+              disabled={patchPreferences.isPending}
+            />
           </InlineField>
         </div>
       </SettingsSection>

@@ -793,6 +793,15 @@ export function MagicModal() {
     }
   }, [customResolveModel, customResolveModelOptions])
 
+  const executeGitDirectlyRef = useRef<
+    | ((
+        option: MagicOption,
+        override?: { backend: CliBackend; model: string },
+        reviewSource?: 'ai' | 'coderabbit-cli' | 'coderabbit-pr'
+      ) => Promise<void>)
+    | null
+  >(null)
+
   // Direct git execution for when ChatWindow isn't rendered (project canvas)
   const executeGitDirectly = useCallback(
     async (
@@ -900,7 +909,9 @@ export function MagicModal() {
               branchLabel: worktree.branch,
               projectId: worktree.project_id ?? undefined,
               remote,
-              onMergeConflict: () => executeGitDirectly('resolve-conflicts'),
+              onMergeConflict: () => {
+                void executeGitDirectlyRef.current?.('resolve-conflicts')
+              },
             })
           })
           break
@@ -1454,6 +1465,10 @@ ${resolveInstructions}`
       pickRemoteOrRun,
     ]
   )
+
+  useEffect(() => {
+    executeGitDirectlyRef.current = executeGitDirectly
+  }, [executeGitDirectly])
 
   const dispatchResolveConflictsCommand = useCallback(() => {
     const override =

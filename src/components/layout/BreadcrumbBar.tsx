@@ -54,7 +54,8 @@ export function BreadcrumbBar({ className }: { className?: string }) {
   // Show breadcrumb only when there's something meaningful
   const showWorktree =
     worktree && (activeWorktreeId || sessionChatModalOpen || selectedWorktreeId)
-  const showSession = activeSession && (activeWorktreeId || sessionChatModalOpen)
+  const showSession =
+    activeSession && (activeWorktreeId || sessionChatModalOpen)
 
   const projectAvatarUrl =
     project?.avatar_path && appDataDir
@@ -89,10 +90,7 @@ export function BreadcrumbBar({ className }: { className?: string }) {
   return (
     <nav
       aria-label="breadcrumb"
-      className={cn(
-        'flex min-w-0 items-center gap-1 text-sm',
-        className
-      )}
+      className={cn('flex min-w-0 items-center gap-1 text-sm', className)}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       <button

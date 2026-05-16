@@ -6,7 +6,9 @@ use tauri::AppHandle;
 
 use crate::http_server::EmitExt;
 
-use super::registry::{register_terminal, unregister_terminal};
+use super::registry::{
+    append_terminal_output, register_terminal, remove_terminal_output_buffer, unregister_terminal,
+};
 use super::types::{
     TerminalOutputEvent, TerminalSession, TerminalStartedEvent, TerminalStoppedEvent,
 };
@@ -114,6 +116,8 @@ pub fn spawn_terminal(
     cmd.cwd(&cwd);
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
+    cmd.env("FORCE_COLOR", "1");
+    cmd.env("CLICOLOR", "1");
     cmd.env("JEAN_WORKTREE_PATH", &worktree_path);
 
     // Spawn the shell
@@ -189,6 +193,7 @@ pub fn spawn_terminal(
                         for _ in 0..carry_len {
                             s.push('\u{FFFD}');
                         }
+                        append_terminal_output(&terminal_id_clone, &s);
                         let event = TerminalOutputEvent {
                             terminal_id: terminal_id_clone.clone(),
                             data: s,
@@ -214,6 +219,7 @@ pub fn spawn_terminal(
                 Ok(_) => {
                     // SAFETY: validated above.
                     let data = unsafe { String::from_utf8_unchecked(bytes.to_vec()) };
+                    append_terminal_output(&terminal_id_clone, &data);
                     let event = TerminalOutputEvent {
                         terminal_id: terminal_id_clone.clone(),
                         data,
@@ -261,6 +267,7 @@ pub fn spawn_terminal(
                         }
                     }
                     if !out.is_empty() {
+                        append_terminal_output(&terminal_id_clone, &out);
                         let event = TerminalOutputEvent {
                             terminal_id: terminal_id_clone.clone(),
                             data: out,
@@ -274,6 +281,7 @@ pub fn spawn_terminal(
         }
 
         // Terminal has exited, get exit code and cleanup
+        remove_terminal_output_buffer(&terminal_id_clone);
         if let Some(mut session) = unregister_terminal(&terminal_id_clone) {
             let (exit_code, signal) = session
                 .child
@@ -344,6 +352,7 @@ pub fn resize_terminal(terminal_id: &str, cols: u16, rows: u16) -> Result<(), St
 
 /// Kill a terminal
 pub fn kill_terminal(app: &AppHandle, terminal_id: &str) -> Result<bool, String> {
+    remove_terminal_output_buffer(terminal_id);
     if let Some(mut session) = unregister_terminal(terminal_id) {
         // Kill the child process - try graceful termination first
         if let Some(pid) = session.child.process_id() {
@@ -393,6 +402,7 @@ pub fn kill_all_terminals() -> usize {
         }
 
         let _ = session.child.kill();
+        remove_terminal_output_buffer(&terminal_id);
         eprintln!("[TERMINAL CLEANUP] Killed terminal: {terminal_id}");
     }
 

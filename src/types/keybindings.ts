@@ -12,6 +12,7 @@ export type KeybindingAction =
   | 'new_session'
   | 'next_session'
   | 'previous_session'
+  | 'close_session'
   | 'close_session_or_worktree'
   | 'new_worktree'
   | 'cycle_execution_mode'
@@ -82,6 +83,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingsMap = {
   new_session: 'mod+t',
   next_session: 'mod+alt+arrowright',
   previous_session: 'mod+alt+arrowleft',
+  close_session: 'mod+shift+w',
   close_session_or_worktree: 'mod+w',
   new_worktree: 'mod+n',
   cycle_execution_mode: 'shift+tab',
@@ -240,6 +242,14 @@ export const KEYBINDING_DEFINITIONS: KeybindingDefinition[] = [
     description:
       'Close the current session, or remove worktree if last session',
     default_shortcut: 'mod+w',
+    category: 'chat',
+  },
+  {
+    action: 'close_session',
+    label: 'Close current session',
+    description:
+      'Close the active session, even when terminal focus would use the normal close shortcut for terminal tabs',
+    default_shortcut: 'mod+shift+w',
     category: 'chat',
   },
   {

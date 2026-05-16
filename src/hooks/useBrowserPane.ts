@@ -320,7 +320,8 @@ export const browserBackend = {
   async create(
     tabId: string,
     url: string,
-    bounds: { x: number; y: number; width: number; height: number }
+    bounds: { x: number; y: number; width: number; height: number },
+    userAgent?: string | null
   ): Promise<void> {
     if (!isNativeApp()) return
     await invoke<string>('browser_create', {
@@ -330,6 +331,7 @@ export const browserBackend = {
       y: bounds.y,
       width: bounds.width,
       height: bounds.height,
+      userAgent: userAgent ?? null,
     })
   },
   async setBounds(
@@ -356,6 +358,10 @@ export const browserBackend = {
     } catch {
       return false
     }
+  },
+  async getUrl(tabId: string): Promise<string> {
+    if (!isNativeApp()) return ''
+    return invoke<string>('browser_get_url', { tabId })
   },
   async close(tabId: string): Promise<void> {
     if (!isNativeApp()) return

@@ -192,7 +192,9 @@ export function TitleBar({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => openExternal('https://jean.build/sponsorships/')}
+                  onClick={() =>
+                    openExternal('https://jean.build/sponsorships/')
+                  }
                   className="text-pink-500 focus:text-pink-400"
                 >
                   <Heart className="mr-2 size-3.5" />

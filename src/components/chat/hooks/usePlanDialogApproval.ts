@@ -11,6 +11,7 @@ import { invoke } from '@/lib/transport'
 import { buildMcpConfigJson } from '@/services/mcp'
 import { generateId } from '@/lib/uuid'
 import type {
+  Backend,
   ChatMessage,
   QueuedMessage,
   ThinkingLevel,
@@ -19,6 +20,7 @@ import type {
 } from '@/types/chat'
 import type { Session } from '@/types/chat'
 import type { McpServerInfo } from '@/types/chat'
+import type { PlanExecutionOverride } from '@/components/chat/PlanExecutionPicker'
 
 const THINKING_LEVEL_VALUES = new Set<ThinkingLevel>([
   'off',
@@ -90,10 +92,15 @@ export function usePlanDialogApproval({
   const queryClient = useQueryClient()
 
   const approve = useCallback(
-    (updatedPlan: string | undefined, mode: 'build' | 'yolo') => {
+    (
+      updatedPlan: string | undefined,
+      mode: 'build' | 'yolo',
+      override?: PlanExecutionOverride
+    ) => {
       console.warn('[usePlanDialogApproval] approve CALLED', {
         mode,
         activeSessionId,
+        override,
       })
       if (!activeSessionId || !activeWorktreeId || !activeWorktreePath) return
 
@@ -236,19 +243,31 @@ export function usePlanDialogApproval({
 
       setExecutionMode(activeSessionId, mode)
 
+      // Explicit user-picked override (cross-backend plan execution) wins over
+      // pref-derived build/yolo overrides.
       const backendOverride =
-        mode === 'yolo' ? yoloBackendRef.current : buildBackendRef.current
+        override?.backend ??
+        (mode === 'yolo' ? yoloBackendRef.current : buildBackendRef.current)
       const overridesApply =
-        !backendOverride || backendOverride === selectedBackendRef.current
+        !!override ||
+        !backendOverride ||
+        backendOverride === selectedBackendRef.current
 
-      const modelOverride = overridesApply
-        ? mode === 'yolo'
-          ? yoloModelRef.current
-          : buildModelRef.current
-        : null
+      const modelOverride =
+        override?.model ??
+        (overridesApply
+          ? mode === 'yolo'
+            ? yoloModelRef.current
+            : buildModelRef.current
+          : null)
 
       if (modelOverride) {
         useChatStore.getState().setSelectedModel(activeSessionId, modelOverride)
+      }
+      if (override?.backend) {
+        useChatStore
+          .getState()
+          .setSelectedBackend(activeSessionId, override.backend)
       }
 
       const thinkingOverride = overridesApply
@@ -268,22 +287,31 @@ export function usePlanDialogApproval({
           .setThinkingLevel(activeSessionId, resolvedThinkingLevel)
       }
 
-      const effortOverride = overridesApply
-        ? mode === 'yolo'
-          ? yoloEffortLevelRef.current
-          : buildEffortLevelRef.current
-        : null
+      const effortOverride = override?.effortLevel
+        ? override.effortLevel
+        : overridesApply
+          ? mode === 'yolo'
+            ? yoloEffortLevelRef.current
+            : buildEffortLevelRef.current
+          : null
       const resolvedEffortLevel: EffortLevel | undefined =
-        useAdaptiveThinkingRef.current || isCodexBackendRef.current
+        useAdaptiveThinkingRef.current ||
+        isCodexBackendRef.current ||
+        override?.backend === 'codex' ||
+        override?.backend === 'claude'
           ? ((effortOverride as EffortLevel | null) ??
             selectedEffortLevelRef.current)
           : undefined
 
       const model = modelOverride ?? selectedModelRef.current
+      const resolvedBackend: Backend =
+        (override?.backend as Backend | undefined) ??
+        (backendOverride as Backend | null) ??
+        selectedBackendRef.current
       const modeLabel = mode === 'yolo' ? 'Yolo' : 'Build'
       const overrideStr =
         modelOverride || backendOverride
-          ? [backendOverride, model].filter(Boolean).join(' / ')
+          ? [resolvedBackend, model].filter(Boolean).join(' / ')
           : ''
       if (overrideStr) toast.info(`${modeLabel}: ${overrideStr}`)
       const displayMessage = overrideStr
@@ -302,10 +330,11 @@ export function usePlanDialogApproval({
         executionMode: mode,
         thinkingLevel: resolvedThinkingLevel,
         effortLevel: resolvedEffortLevel,
+        backend: resolvedBackend,
         mcpConfig: buildMcpConfigJson(
           mcpServersDataRef.current ?? [],
           enabledMcpServersRef.current,
-          (backendOverride as string) ?? selectedBackendRef.current
+          resolvedBackend
         ),
         queuedAt: Date.now(),
       }
@@ -343,12 +372,14 @@ export function usePlanDialogApproval({
   )
 
   const handlePlanDialogApprove = useCallback(
-    (updatedPlan?: string) => approve(updatedPlan, 'build'),
+    (updatedPlan?: string, override?: PlanExecutionOverride) =>
+      approve(updatedPlan, 'build', override),
     [approve]
   )
 
   const handlePlanDialogApproveYolo = useCallback(
-    (updatedPlan?: string) => approve(updatedPlan, 'yolo'),
+    (updatedPlan?: string, override?: PlanExecutionOverride) =>
+      approve(updatedPlan, 'yolo', override),
     [approve]
   )
 

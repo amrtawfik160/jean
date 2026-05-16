@@ -2,7 +2,14 @@ import { useCallback, useMemo, useState } from 'react'
 import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { invoke } from '@/lib/transport'
 import { toast } from 'sonner'
-import { FileText, Loader2, Check, Link2, Eye, Ellipsis } from '@/components/icons'
+import {
+  FileText,
+  Loader2,
+  Check,
+  Link2,
+  Eye,
+  Ellipsis,
+} from '@/components/icons'
 import { useUIStore } from '@/store/ui-store'
 import {
   Dialog,

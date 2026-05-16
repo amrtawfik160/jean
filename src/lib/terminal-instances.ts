@@ -26,6 +26,7 @@ import { listen } from '@/lib/transport'
 import { queryClient } from '@/lib/query-client'
 import { preferencesQueryKeys } from '@/services/preferences'
 import { isPanelTerminal, useTerminalStore } from '@/store/terminal-store'
+import { useUIStore } from '@/store/ui-store'
 import {
   defaultPreferences,
   type AppPreferences,
@@ -36,10 +37,15 @@ import type {
   TerminalStartedEvent,
   TerminalStoppedEvent,
 } from '@/types/terminal'
+import type { RunStatus, Session, WorktreeSessions } from '@/types/chat'
 
 type TerminalRenderer = 'xterm' | 'ghostty-web'
 type EmbeddedTerminal = XtermTerminal | GhosttyWebTerminal
 type EmbeddedFitAddon = XtermFitAddon | GhosttyWebFitAddon
+const chatQueryKeys = {
+  all: ['chat'] as const,
+  session: (sessionId: string) => ['chat', 'session', sessionId] as const,
+}
 
 interface TerminalAppearance {
   fontFamily: string
@@ -73,6 +79,10 @@ const inputBuffers = new Map<
   string,
   { data: string; timer: ReturnType<typeof setTimeout> | null }
 >()
+const MAX_TERMINAL_COMMAND_HISTORY = 50
+const TERMINAL_COMMAND_HISTORY_STORAGE_KEY = 'jean.terminal.commandHistory'
+const currentInputLines = new Map<string, string>()
+const commandHistoryByTerminal = new Map<string, string[]>()
 const outputBuffers = new Map<string, { data: string; scheduled: boolean }>()
 // Pending onStopped callbacks for terminals not yet created
 const pendingOnStopped = new Map<
@@ -407,6 +417,22 @@ function getTerminalTheme() {
     cursor: foreground,
     selectionBackground: 'rgba(96, 165, 250, 0.35)',
     selectionForeground: foreground,
+    black: '#1f2937',
+    red: '#ef4444',
+    green: '#22c55e',
+    yellow: '#eab308',
+    blue: '#3b82f6',
+    magenta: '#a855f7',
+    cyan: '#06b6d4',
+    white: '#e5e7eb',
+    brightBlack: '#6b7280',
+    brightRed: '#f87171',
+    brightGreen: '#4ade80',
+    brightYellow: '#facc15',
+    brightBlue: '#60a5fa',
+    brightMagenta: '#c084fc',
+    brightCyan: '#22d3ee',
+    brightWhite: '#ffffff',
   }
 }
 
@@ -494,6 +520,122 @@ function queueTerminalInput(terminalId: string, data: string): void {
     INPUT_FLUSH_DELAY_MS
   )
   inputBuffers.set(terminalId, buffer)
+}
+
+function loadPersistedCommandHistory(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = window.localStorage.getItem(
+      TERMINAL_COMMAND_HISTORY_STORAGE_KEY
+    )
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : []
+  } catch {
+    return []
+  }
+}
+
+function persistCommandHistory(commands: string[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(
+      TERMINAL_COMMAND_HISTORY_STORAGE_KEY,
+      JSON.stringify(commands.slice(0, MAX_TERMINAL_COMMAND_HISTORY))
+    )
+  } catch {
+    // Ignore storage quota / privacy-mode errors. In-memory history still works.
+  }
+}
+
+function mergeRecentCommands(...groups: string[][]): string[] {
+  const seen = new Set<string>()
+  const merged: string[] = []
+
+  for (const group of groups) {
+    for (const command of group) {
+      const trimmed = command.trim()
+      if (!trimmed || seen.has(trimmed)) continue
+      seen.add(trimmed)
+      merged.push(trimmed)
+      if (merged.length >= MAX_TERMINAL_COMMAND_HISTORY) return merged
+    }
+  }
+
+  return merged
+}
+
+export function recordTerminalCommand(
+  terminalId: string | undefined,
+  command: string
+): void {
+  const trimmed = command.trim()
+  if (!terminalId || !trimmed) return
+
+  const terminalHistory = mergeRecentCommands(
+    [trimmed],
+    commandHistoryByTerminal.get(terminalId) ?? []
+  )
+  commandHistoryByTerminal.set(terminalId, terminalHistory)
+
+  persistCommandHistory(
+    mergeRecentCommands([trimmed], loadPersistedCommandHistory())
+  )
+}
+
+function updateCurrentInputLine(terminalId: string, data: string): void {
+  let current = currentInputLines.get(terminalId) ?? ''
+
+  for (let index = 0; index < data.length; index += 1) {
+    const char = data[index]
+    if (char === undefined) continue
+    if (char === '\u001b') {
+      // Ignore escape sequences (arrows, option-key chords, bracketed paste
+      // markers) so they do not become bogus partial command text.
+      index += 1
+      while (index < data.length && !/[A-Za-z~]/.test(data[index] ?? '')) {
+        index += 1
+      }
+      continue
+    }
+
+    if (char === '\r' || char === '\n') {
+      recordTerminalCommand(terminalId, current)
+      current = ''
+    } else if (char === '\u0003') {
+      current = ''
+    } else if (char === '\u007f' || char === '\b') {
+      current = current.slice(0, -1)
+    } else if (char === '\u0015') {
+      current = ''
+    } else if (!char.match(/[\u0000-\u001f]/)) {
+      current += char
+    }
+  }
+
+  if (current) {
+    currentInputLines.set(terminalId, current)
+  } else {
+    currentInputLines.delete(terminalId)
+  }
+}
+
+export function getTerminalCurrentInput(
+  terminalId: string | undefined
+): string {
+  if (!terminalId) return ''
+  return currentInputLines.get(terminalId) ?? ''
+}
+
+export function getRecentTerminalCommands(
+  terminalId: string | undefined,
+  limit = 20
+): string[] {
+  return mergeRecentCommands(
+    terminalId ? (commandHistoryByTerminal.get(terminalId) ?? []) : [],
+    loadPersistedCommandHistory()
+  ).slice(0, limit)
 }
 
 function queueTerminalOutput(instance: PersistentTerminal, data: string): void {
@@ -618,11 +760,51 @@ function registerTerminalInputHandlers(
   // and dumping them into the shell on reconnect = footgun (e.g. dangerous
   // partial commands executed). Banner makes the dropped state visible.
   terminal.onData(data => {
+    updateCurrentInputLine(terminalId, data)
     queueTerminalInput(terminalId, data)
   })
 }
 
 let terminalBackendListenersReady: Promise<void> | null = null
+
+// Idle-detection for native CLI sessions (Claude/Codex TUI). The PTY stays
+// alive at the input prompt after work completes, so `terminal:stopped` never
+// fires; without a debounced silence detector the session row would show the
+// "working" spinner forever. See syncNativeTerminalSessionStatus.
+const nativeCliIdleTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const nativeCliSyncedStatus = new Map<string, 'running' | 'completed'>()
+const NATIVE_CLI_IDLE_THRESHOLD_MS = 1500
+
+function scheduleNativeCliIdleCheck(terminalId: string): void {
+  const sessionId = getSessionIdForTerminal(terminalId)
+  if (!sessionId) return
+
+  if (nativeCliSyncedStatus.get(terminalId) !== 'running') {
+    nativeCliSyncedStatus.set(terminalId, 'running')
+    syncNativeTerminalSessionStatus(terminalId, 'running')
+  }
+
+  const existing = nativeCliIdleTimers.get(terminalId)
+  if (existing) clearTimeout(existing)
+
+  const timer = setTimeout(() => {
+    nativeCliIdleTimers.delete(terminalId)
+    if (nativeCliSyncedStatus.get(terminalId) !== 'running') return
+    nativeCliSyncedStatus.set(terminalId, 'completed')
+    syncNativeTerminalSessionStatus(terminalId, 'completed')
+  }, NATIVE_CLI_IDLE_THRESHOLD_MS)
+
+  nativeCliIdleTimers.set(terminalId, timer)
+}
+
+function clearNativeCliIdleCheck(terminalId: string): void {
+  const timer = nativeCliIdleTimers.get(terminalId)
+  if (timer) {
+    clearTimeout(timer)
+    nativeCliIdleTimers.delete(terminalId)
+  }
+  nativeCliSyncedStatus.delete(terminalId)
+}
 
 function ensureTerminalBackendListeners(): Promise<void> {
   if (terminalBackendListenersReady) return terminalBackendListenersReady
@@ -633,12 +815,19 @@ function ensureTerminalBackendListeners(): Promise<void> {
         const terminalId = event.payload.terminal_id
         const inst = instances.get(terminalId)
         if (!inst) return
+        if (!useTerminalStore.getState().isTerminalRunning(terminalId)) {
+          useTerminalStore.getState().setTerminalRunning(terminalId, true)
+        }
         queueTerminalOutput(inst, event.payload.data)
+        scheduleNativeCliIdleCheck(terminalId)
       }),
       listen<TerminalStartedEvent>('terminal:started', event => {
-        useTerminalStore
-          .getState()
-          .setTerminalRunning(event.payload.terminal_id, true)
+        const terminalId = event.payload.terminal_id
+        useTerminalStore.getState().setTerminalRunning(terminalId, true)
+        if (getSessionIdForTerminal(terminalId)) {
+          nativeCliSyncedStatus.set(terminalId, 'running')
+          syncNativeTerminalSessionStatus(terminalId, 'running')
+        }
       }),
       listen<TerminalStoppedEvent>('terminal:stopped', event => {
         handleTerminalStopped(event.payload)
@@ -655,6 +844,94 @@ function ensureTerminalBackendListeners(): Promise<void> {
   ).then(() => undefined)
 
   return terminalBackendListenersReady
+}
+
+function getSessionIdForTerminal(terminalId: string): string | null {
+  const sessionTerminalIds = useUIStore.getState().sessionTerminalIds
+  for (const [sessionId, mappedTerminalId] of Object.entries(
+    sessionTerminalIds
+  )) {
+    if (mappedTerminalId === terminalId) return sessionId
+  }
+  return null
+}
+
+function patchNativeTerminalSessionStatus(
+  sessionId: string,
+  status: RunStatus
+): { session: Session | null; worktreeId: string | null } {
+  const now = Math.floor(Date.now() / 1000)
+  let patchedSession: Session | null = null
+  let patchedWorktreeId: string | null = null
+
+  const patch = (session: Session): Session => {
+    if (
+      session.primary_surface !== 'terminal' ||
+      (session.backend !== 'claude' && session.backend !== 'codex')
+    ) {
+      return session
+    }
+    patchedSession = {
+      ...session,
+      last_run_status: status,
+      last_run_started_at:
+        status === 'running' ? now : session.last_run_started_at,
+      waiting_for_input: false,
+      waiting_for_input_type: null,
+      is_reviewing: false,
+      updated_at: now,
+    }
+    return patchedSession
+  }
+
+  queryClient.setQueriesData<WorktreeSessions>(
+    { queryKey: chatQueryKeys.all },
+    old => {
+      if (!old || !Array.isArray(old.sessions)) return old
+      let changed = false
+      const sessions = old.sessions.map(session => {
+        if (session.id !== sessionId) return session
+        patchedWorktreeId = old.worktree_id
+        const next = patch(session)
+        changed = next !== session
+        return next
+      })
+      return changed ? { ...old, sessions } : old
+    }
+  )
+
+  queryClient.setQueryData<Session>(chatQueryKeys.session(sessionId), old =>
+    old ? patch(old) : old
+  )
+
+  return { session: patchedSession, worktreeId: patchedWorktreeId }
+}
+
+function syncNativeTerminalSessionStatus(
+  terminalId: string,
+  status: RunStatus
+): void {
+  const sessionId = getSessionIdForTerminal(terminalId)
+  if (!sessionId) return
+
+  const inst = instances.get(terminalId)
+  const { session, worktreeId } = patchNativeTerminalSessionStatus(
+    sessionId,
+    status
+  )
+  if (!session || !worktreeId || !inst) return
+
+  invoke('update_native_terminal_session_run_status', {
+    worktreeId,
+    worktreePath: inst.worktreePath,
+    sessionId,
+    status,
+  }).catch(error => {
+    console.error(
+      '[terminal-instances] failed to sync native CLI session status:',
+      error
+    )
+  })
 }
 
 function isCurrentInstance(
@@ -680,6 +957,7 @@ async function waitForTerminalReady(
 
 function handleTerminalStopped(event: TerminalStoppedEvent): void {
   const terminalId = event.terminal_id
+  clearNativeCliIdleCheck(terminalId)
   useTerminalStore.getState().setTerminalRunning(terminalId, false)
 
   const inst = instances.get(terminalId)
@@ -710,6 +988,10 @@ function handleTerminalStopped(event: TerminalStoppedEvent): void {
     signal != null &&
     (signal.includes('Interrupt') || signal.includes('Terminated'))
   const isCleanExit = exitCode === 0 || isIntentionalSignal
+  syncNativeTerminalSessionStatus(
+    terminalId,
+    isCleanExit ? 'completed' : 'crashed'
+  )
 
   if (isCleanExit && inst && isPanel) {
     const wId = inst.worktreeId
@@ -898,8 +1180,10 @@ export async function attachToContainer(
       if (!isCurrentInstance(terminalId, instance)) return
 
       if (ptyExists) {
-        // PTY exists - just resize and mark as running
+        // PTY exists - just resize and mark as running. Schedule an idle check
+        // so a quiet TUI flips to 'completed' instead of staying "working".
         useTerminalStore.getState().setTerminalRunning(terminalId, true)
+        scheduleNativeCliIdleCheck(terminalId)
         await invoke('terminal_resize', { terminalId, cols, rows }).catch(
           console.error
         )
@@ -912,10 +1196,17 @@ export async function attachToContainer(
           rows,
           command,
           commandArgs,
-        }).catch(error => {
-          console.error('[terminal-instances] start_terminal failed:', error)
-          terminal.writeln(`\x1b[31mFailed to start terminal: ${error}\x1b[0m`)
         })
+          .then(() => {
+            useTerminalStore.getState().setTerminalRunning(terminalId, true)
+            scheduleNativeCliIdleCheck(terminalId)
+          })
+          .catch(error => {
+            console.error('[terminal-instances] start_terminal failed:', error)
+            terminal.writeln(
+              `\x1b[31mFailed to start terminal: ${error}\x1b[0m`
+            )
+          })
       }
       if (!isCurrentInstance(terminalId, instance)) return
 
@@ -961,6 +1252,9 @@ export function startHeadless(
         rows: 24,
         command: options.command,
         commandArgs: options.commandArgs ?? null,
+      }).then(() => {
+        useTerminalStore.getState().setTerminalRunning(terminalId, true)
+        scheduleNativeCliIdleCheck(terminalId)
       })
     })
     .catch(error => {
@@ -1018,6 +1312,7 @@ export async function disposeTerminal(terminalId: string): Promise<void> {
 
   // Remove from Map first so new lookups don't find a half-disposed instance
   instances.delete(terminalId)
+  clearNativeCliIdleCheck(terminalId)
   discardTerminalInput(terminalId)
   outputBuffers.delete(terminalId)
   instance.pendingOutput = []

@@ -23,6 +23,7 @@ import {
 import { useProjectsStore } from '@/store/projects-store'
 import { useChatStore } from '@/store/chat-store'
 import { ProjectTree } from './ProjectTree'
+import { SidebarUsageCard } from './SidebarUsageCard'
 import { useInstalledBackends } from '@/hooks/useInstalledBackends'
 import { scheduleIdleWork } from '@/lib/idle'
 import { isFolder } from '@/types/projects'
@@ -76,6 +77,8 @@ export function ProjectsSidebar() {
           <ProjectTree projects={projects} />
         )}
       </div>
+
+      <SidebarUsageCard />
 
       {/* Footer — Linear-style ghost row */}
       <div
@@ -174,7 +177,8 @@ function RailSidebar() {
                     className={cn(
                       'group relative flex size-8 items-center justify-center rounded-md transition-all duration-150',
                       'hover:bg-sidebar-accent',
-                      isSelected && 'bg-sidebar-accent shadow-[inset_0_0_0_1px_oklch(0.66_0.19_268/0.4)]'
+                      isSelected &&
+                        'bg-sidebar-accent shadow-[inset_0_0_0_1px_oklch(0.66_0.19_268/0.4)]'
                     )}
                     aria-label={project.name}
                   >

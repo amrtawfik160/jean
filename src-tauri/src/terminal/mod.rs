@@ -1,9 +1,11 @@
+mod ai;
 mod commands;
 mod pty;
 mod registry;
 mod types;
 
 // Re-export commands for registration in lib.rs
+pub use ai::*;
 pub use commands::*;
 
 // Re-export internal functions for app lifecycle cleanup

@@ -177,7 +177,16 @@ export function useClaudeUsage(options?: { enabled?: boolean }) {
     enabled: options?.enabled ?? true,
     staleTime: query => getUsageStaleTime(query.state.data),
     gcTime: 1000 * 60 * 10,
-    refetchInterval: query => getUsageRefetchInterval(query.state.data),
+    // Don't retry on auth / rate-limit failures — the Rust side already has a
+    // cooldown for 429s, and retrying just amplifies the problem.
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchInterval: query => {
+      // After an error, wait 30 minutes before trying again rather than the
+      // normal 5 minutes — this matches the Rust-side 429 cooldown.
+      if (query.state.error) return 1000 * 60 * 30
+      return getUsageRefetchInterval(query.state.data)
+    },
   })
 }
 

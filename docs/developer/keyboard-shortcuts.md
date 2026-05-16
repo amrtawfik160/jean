@@ -4,7 +4,7 @@ User-configurable keyboard shortcut system using native DOM event listeners, int
 
 ## Quick Start
 
-### All Keybindings (19 Total)
+### All Keybindings
 
 Keybindings are user-configurable in Preferences. Below are the defaults:
 
@@ -22,7 +22,8 @@ Keybindings are user-configurable in Preferences. Below are the defaults:
 | `new_session`               | `Cmd+T`          | Create new chat session                 |
 | `next_session`              | `Cmd+Alt+Right`  | Switch to next session tab              |
 | `previous_session`          | `Cmd+Alt+Left`   | Switch to previous session tab          |
-| `close_session_or_worktree` | `Cmd+W`          | Close session or remove worktree        |
+| `close_session`             | `Cmd+Shift+W`    | Close current session                   |
+| `close_session_or_worktree` | `Cmd+W`          | Close session or terminal tab/worktree  |
 | `new_worktree`              | `Cmd+N`          | Create new worktree                     |
 | `next_worktree`             | `Cmd+Alt+Down`   | Switch to next worktree                 |
 | `previous_worktree`         | `Cmd+Alt+Up`     | Switch to previous worktree             |
@@ -53,6 +54,7 @@ export type KeybindingAction =
   | 'new_session'
   | 'next_session'
   | 'previous_session'
+  | 'close_session'
   | 'close_session_or_worktree'
   | 'new_worktree'
   | 'next_worktree'
@@ -84,6 +86,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingsMap = {
   new_session: 'mod+t',
   next_session: 'mod+alt+arrowright',
   previous_session: 'mod+alt+arrowleft',
+  close_session: 'mod+shift+w',
   close_session_or_worktree: 'mod+w',
   new_worktree: 'mod+n',
   next_worktree: 'mod+alt+arrowdown',

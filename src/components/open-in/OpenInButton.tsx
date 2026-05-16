@@ -1,5 +1,11 @@
 import { useCallback } from 'react'
-import { Code, Terminal, FolderOpen, Github, ChevronDown } from '@/components/icons'
+import {
+  Code,
+  Terminal,
+  FolderOpen,
+  Github,
+  ChevronDown,
+} from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -21,6 +27,9 @@ import {
 import { usePreferences } from '@/services/preferences'
 import { getOpenInDefaultLabel } from '@/types/preferences'
 import { isNativeApp } from '@/lib/environment'
+
+const ZED_LOGO_URL =
+  'https://zed.dev/_next/static/media/stable-app-logo.06nn-bqvtdgcl.png'
 
 interface OpenInButtonProps {
   worktreePath: string
@@ -77,6 +86,9 @@ export function OpenInButton({
     preferences?.editor,
     preferences?.terminal
   )
+  const showZedLogo =
+    (preferences?.open_in ?? 'editor') === 'editor' &&
+    (preferences?.editor ?? 'zed') === 'zed'
 
   if (!isNativeApp()) return null
 
@@ -91,6 +103,13 @@ export function OpenInButton({
             className="h-7 rounded-r-none border-0 px-2.5 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => openAction(preferences?.open_in ?? 'editor')}
           >
+            {showZedLogo && (
+              <img
+                src={ZED_LOGO_URL}
+                alt=""
+                className="mr-1.5 h-3.5 w-3.5 rounded-[3px]"
+              />
+            )}
             Open in {defaultLabel}
           </Button>
         </TooltipTrigger>
@@ -109,7 +128,15 @@ export function OpenInButton({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => openAction('editor')}>
-            <Code className="h-4 w-4" />
+            {(preferences?.editor ?? 'zed') === 'zed' ? (
+              <img
+                src={ZED_LOGO_URL}
+                alt=""
+                className="h-4 w-4 rounded-[3px]"
+              />
+            ) : (
+              <Code className="h-4 w-4" />
+            )}
             {getOpenInDefaultLabel(
               'editor',
               preferences?.editor,

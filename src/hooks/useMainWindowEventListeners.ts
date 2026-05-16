@@ -331,6 +331,11 @@ function executeKeybindingAction(
         new CustomEvent('switch-session', { detail: { direction: 'previous' } })
       )
       break
+    case 'close_session': {
+      logger.debug('Keybinding: close_session')
+      window.dispatchEvent(new CustomEvent('close-session-or-worktree'))
+      break
+    }
     case 'close_session_or_worktree': {
       // When terminal is focused, CMD+W should close the active terminal tab.
       if (closeActiveTerminalTabForShortcut()) break
@@ -592,18 +597,29 @@ export function useMainWindowEventListeners() {
         }
       }
 
-      if (
-        shortcut === 'mod+shift+escape' &&
-        blurFocusedTerminalForShortcut()
-      ) {
+      if (shortcut === 'mod+shift+escape' && blurFocusedTerminalForShortcut()) {
         e.preventDefault()
         e.stopPropagation()
         return
       }
 
+      const plainSessionTerminalFocused = isPlainSessionTerminalFocused()
+
+      // Dedicated close-session shortcut should still work when focus is inside
+      // a full-screen/native terminal session. Cmd+W stays terminal-tab scoped.
+      if (
+        plainSessionTerminalFocused &&
+        shortcut === keybindingsRef.current.close_session
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        executeKeybindingAction('close_session', commandContext, queryClient)
+        return
+      }
+
       // A focused full-screen/plain terminal session should own all keybindings.
       // Side/modal terminals still use the terminal-specific remapping below.
-      if (isPlainSessionTerminalFocused()) return
+      if (plainSessionTerminalFocused) return
 
       // Cancel prompt should work even when modals are open
       if (shortcut === keybindingsRef.current.cancel_prompt) {
@@ -665,6 +681,7 @@ export function useMainWindowEventListeners() {
           if (
             shortcut === kb.toggle_terminal ||
             shortcut === kb.toggle_browser ||
+            shortcut === kb.close_session ||
             shortcut === kb.cancel_prompt
           ) {
             // Let these fall through to the normal keybinding handler below
@@ -875,6 +892,9 @@ export function useMainWindowEventListeners() {
           // Invalidate sessions query to refresh the session name in the UI
           queryClient.invalidateQueries({
             queryKey: chatQueryKeys.sessions(event.payload.worktree_id),
+          })
+          queryClient.invalidateQueries({
+            queryKey: ['all-sessions'],
           })
         }),
 

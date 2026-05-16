@@ -1,5 +1,6 @@
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use tauri::AppHandle;
 
 use super::pty::{
@@ -68,6 +69,7 @@ pub async fn prepare_backend_terminal_context(
     session_id: String,
     worktree_id: String,
     backend: String,
+    source_session_id: Option<String>,
 ) -> Result<crate::chat::context_instructions::PreparedBackendTerminalContext, String> {
     let backend = crate::chat::context_instructions::TerminalContextBackend::parse(&backend)
         .ok_or_else(|| format!("Unsupported backend terminal context: {backend}"))?;
@@ -76,7 +78,48 @@ pub async fn prepare_backend_terminal_context(
         &session_id,
         &worktree_id,
         backend,
+        source_session_id.as_deref(),
     )
+}
+
+#[derive(Clone, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PackageJsonScript {
+    pub name: String,
+    pub command: String,
+    pub run_command: String,
+}
+
+/// Get scripts from package.json as bun run suggestions.
+#[tauri::command]
+pub async fn get_package_json_scripts(project_path: String) -> Vec<PackageJsonScript> {
+    let package_path = Path::new(&project_path).join("package.json");
+    let Ok(content) = std::fs::read_to_string(&package_path) else {
+        return Vec::new();
+    };
+
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
+        return Vec::new();
+    };
+
+    let Some(scripts) = json.get("scripts").and_then(|value| value.as_object()) else {
+        return Vec::new();
+    };
+
+    let mut entries: Vec<PackageJsonScript> = scripts
+        .iter()
+        .filter_map(|(name, command)| {
+            let command = command.as_str()?;
+            Some(PackageJsonScript {
+                name: name.clone(),
+                command: command.to_string(),
+                run_command: format!("bun run {name}"),
+            })
+        })
+        .collect();
+
+    entries.sort_by(|a, b| a.name.cmp(&b.name));
+    entries
 }
 
 /// Get the run script(s) from jean.json for a worktree

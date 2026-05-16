@@ -75,8 +75,7 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         onKeyDown={handleKeyDown}
         className={cn(
-          'bg-popover text-popover-foreground border border-border/70',
-          'shadow-[0_8px_24px_-4px_oklch(0_0_0/0.45),0_0_0_1px_oklch(0.27_0.01_270/0.4)]',
+          'glass-loud text-popover-foreground',
           'rounded-lg p-1.5',
           'z-[80] max-h-(--radix-dropdown-menu-content-available-height) min-w-[10rem]',
           'origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto',
@@ -279,8 +278,7 @@ function DropdownMenuSubContent({
     <DropdownMenuPrimitive.SubContent
       data-slot="dropdown-menu-sub-content"
       className={cn(
-        'bg-popover text-popover-foreground border border-border/70',
-        'shadow-[0_8px_24px_-4px_oklch(0_0_0/0.45),0_0_0_1px_oklch(0.27_0.01_270/0.4)]',
+        'glass-loud text-popover-foreground',
         'rounded-lg p-1.5',
         'z-[80] max-h-(--radix-dropdown-menu-content-available-height) min-w-[10rem]',
         'origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto',

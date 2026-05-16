@@ -41,6 +41,13 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from '@/components/ui/popover'
+import { UsageRing } from '@/components/ui/usage-ring'
+import {
+  UsagePlanPanel,
+  claudeUsageRows,
+  codexUsageRows,
+  peakUsagePercent,
+} from '@/components/chat/toolbar/UsagePlanPanel'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { invoke } from '@/lib/transport'
 import { useWsConnectionStatus } from '@/lib/transport'
@@ -59,6 +66,12 @@ import {
   useCodexCliStatus,
   useCodexUsage,
 } from '@/services/codex-cli'
+import {
+  useClaudeCliAuth,
+  useClaudeCliStatus,
+  useClaudeUsage,
+} from '@/services/claude-cli'
+import { ClaudeIcon } from '@/components/icons/ClaudeIcon'
 import type { WorktreeSessions } from '@/types/chat'
 import { DEFAULT_KEYBINDINGS, formatShortcutDisplay } from '@/types/keybindings'
 import type { KeybindingHint } from '@/components/ui/keybinding-hints'
@@ -235,33 +248,47 @@ export function FloatingDock() {
       shouldFetchUsage,
   })
 
+  const claudeStatus = useClaudeCliStatus()
+  const claudeAuth = useClaudeCliAuth({
+    enabled: !!claudeStatus.data?.installed,
+  })
+  const claudeUsage = useClaudeUsage({
+    enabled:
+      !!claudeStatus.data?.installed &&
+      !!claudeAuth.data?.authenticated &&
+      shouldFetchUsage &&
+      activeBackend === 'claude',
+  })
+
   const usageEntries = [
+    {
+      id: 'claude' as const,
+      label: 'Claude',
+      Icon: ClaudeIcon,
+      plan: claudeUsage.data?.planType ?? null,
+      rows: claudeUsageRows(claudeUsage.data),
+      isLoading: claudeUsage.isLoading,
+      available:
+        !!claudeStatus.data?.installed && !!claudeAuth.data?.authenticated,
+    },
     {
       id: 'codex' as const,
       label: 'Codex',
       Icon: CodexIcon,
       plan: codexUsage.data?.planType ?? null,
-      session: codexUsage.data?.session?.usedPercent ?? null,
-      weekly: codexUsage.data?.weekly?.usedPercent ?? null,
+      rows: codexUsageRows(codexUsage.data),
+      isLoading: codexUsage.isLoading,
       available:
         !!codexStatus.data?.installed && !!codexAuth.data?.authenticated,
     },
   ]
 
   const activeUsageEntry =
-    usageEntries.find(entry => entry.id === activeBackend) ??
+    usageEntries.find(entry => entry.id === activeBackend && entry.available) ??
     usageEntries.find(entry => entry.available) ??
     usageEntries[0]
 
-  const usageBadge = (() => {
-    const session = activeUsageEntry?.session ?? null
-    const weekly = activeUsageEntry?.weekly ?? null
-    const sessionText = session === null ? '--' : `${Math.round(session)}`
-    const weeklyText = weekly === null ? '--' : `${Math.round(weekly)}`
-    return {
-      text: `${sessionText}|${weeklyText}%`,
-    }
-  })()
+  const activeUsagePeak = peakUsagePercent(activeUsageEntry?.rows ?? [])
 
   const getActiveResumeCommand = useCallback(() => {
     const { selectedWorktreeId: currentWorktreeId } =
@@ -421,7 +448,7 @@ export function FloatingDock() {
 
   return (
     <div
-      className="absolute right-4 z-10 flex flex-row items-center gap-0.5 rounded-full border border-border/70 bg-popover/80 backdrop-blur-md shadow-[0_4px_16px_-4px_oklch(0_0_0/0.4)] px-1 py-0.5 transition-[bottom] duration-200 sm:left-4 sm:right-auto sm:flex-col sm:rounded-2xl sm:px-0.5 sm:py-1 xl:flex-row xl:rounded-full xl:px-1 xl:py-0.5"
+      className="glass-loud absolute right-4 z-10 flex flex-row items-center gap-0.5 rounded-full px-1 py-0.5 transition-[bottom] duration-200 sm:left-4 sm:right-auto sm:flex-col sm:rounded-2xl sm:px-0.5 sm:py-1 xl:flex-row xl:rounded-full xl:px-1 xl:py-0.5"
       style={{ bottom: bottomOffset }}
     >
       <DropdownMenu open={menuOpen} onOpenChange={handleQuickMenuOpenChange}>
@@ -546,70 +573,62 @@ export function FloatingDock() {
       )}
 
       {!isMobile && activeUsageEntry && (
-        <DropdownMenu open={usageMenuOpen} onOpenChange={setUsageMenuOpen}>
+        <Popover open={usageMenuOpen} onOpenChange={setUsageMenuOpen}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
+              <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground xl:w-[88px] xl:justify-center xl:px-2"
+                  className="group h-7 w-7 rounded-full text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground"
                 >
-                  <activeUsageEntry.Icon className="size-4 shrink-0 xl:mr-1 xl:size-3.5" />
-                  <span className="hidden text-[11px] leading-none tabular-nums xl:inline">
-                    {usageBadge.text}
+                  <UsageRing
+                    value={activeUsagePeak}
+                    size={20}
+                    thickness={0.18}
+                    label={`${activeUsageEntry.label} usage`}
+                    className="transition-transform duration-150 group-hover:scale-[1.04]"
+                  >
+                    <activeUsageEntry.Icon
+                      className="h-2.5 w-2.5 text-foreground/85 transition-colors group-hover:text-foreground"
+                      aria-hidden="true"
+                    />
+                  </UsageRing>
+                  <span className="sr-only">
+                    {activeUsageEntry.label} usage
                   </span>
                 </Button>
-              </DropdownMenuTrigger>
+              </PopoverTrigger>
             </TooltipTrigger>
             <TooltipContent side={popoverSide}>
-              {activeUsageEntry.label} Session|Weekly{' '}
+              {activeUsageEntry.label} plan usage
               <kbd className="ml-1 text-[0.625rem] opacity-60">
                 {usageShortcut}
               </kbd>
             </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent
+          <PopoverContent
             side={popoverSide}
             align={popoverAlign}
-            className="min-w-[180px]"
+            className="w-[260px] glass-loud rounded-xl p-0"
             onEscapeKeyDown={e => e.stopPropagation()}
           >
-            {usageEntries.map(entry => {
-              const sessionText =
-                entry.session === null ? '--' : `${Math.round(entry.session)}`
-              const weeklyText =
-                entry.weekly === null ? '--' : `${Math.round(entry.weekly)}`
-              const planText =
-                entry.plan && entry.plan.trim().length > 0 ? entry.plan : '--'
-              return (
-                <DropdownMenuItem
-                  key={entry.id}
-                  onClick={() =>
-                    useUIStore.getState().openPreferencesPane('usage')
-                  }
-                >
-                  <entry.Icon className="mr-2 h-4 w-4 shrink-0" />
-                  <div className="flex min-w-0 flex-col">
-                    <span>{entry.label}</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      Plan: {planText}
-                    </span>
-                  </div>
-                  <DropdownMenuShortcut>
-                    {sessionText}|{weeklyText}%
-                  </DropdownMenuShortcut>
-                </DropdownMenuItem>
-              )
-            })}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => useUIStore.getState().openPreferencesPane('usage')}
-            >
-              Open Usage Details
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <UsagePlanPanel
+              rows={activeUsageEntry.rows}
+              planLabel={activeUsageEntry.plan}
+              isLoading={activeUsageEntry.isLoading}
+              emptyMessage={
+                activeUsageEntry.available
+                  ? 'No usage data available yet.'
+                  : `${activeUsageEntry.label} is not signed in.`
+              }
+              onOpenDetails={() => {
+                setUsageMenuOpen(false)
+                useUIStore.getState().openPreferencesPane('usage')
+              }}
+            />
+          </PopoverContent>
+        </Popover>
       )}
 
       {showConnectionIndicator && <ConnectionIndicator />}

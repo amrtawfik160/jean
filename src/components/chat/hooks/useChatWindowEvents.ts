@@ -289,7 +289,9 @@ export function useChatWindowEvents({
 
   // ESC: Cancel prompt
   const cancelContextRef = useRef({ activeWorktreeId, activeSessionId })
-  cancelContextRef.current = { activeWorktreeId, activeSessionId }
+  useEffect(() => {
+    cancelContextRef.current = { activeWorktreeId, activeSessionId }
+  }, [activeWorktreeId, activeSessionId])
 
   useEffect(() => {
     const handler = () => {

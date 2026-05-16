@@ -8,8 +8,23 @@ import {
   type RefObject,
 } from 'react'
 import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   Archive,
-  ChevronDown,
   Eye,
   EyeOff,
   FileText,
@@ -19,7 +34,6 @@ import {
   Tag,
   Terminal,
   Globe,
-  Play,
   Plus,
   Trash2,
 } from '@/components/icons'
@@ -34,6 +48,7 @@ import {
 } from '@/components/ui/tooltip'
 import { DismissButton } from '@/components/ui/dismiss-button'
 import { StatusIndicator } from '@/components/ui/status-indicator'
+import { SessionTypeIcon } from '@/components/chat/SessionTypeIcon'
 import { GitStatusBadges } from '@/components/ui/git-status-badges'
 import { NewIssuesBadge } from '@/components/shared/NewIssuesBadge'
 import { OpenPRsBadge } from '@/components/shared/OpenPRsBadge'
@@ -44,9 +59,19 @@ import { useChatStore } from '@/store/chat-store'
 import { isPanelTerminal, useTerminalStore } from '@/store/terminal-store'
 import { useBrowserStore } from '@/store/browser-store'
 import { useUIStore } from '@/store/ui-store'
-import { useSessions, useRenameSession } from '@/services/chat'
+import {
+  useSessions,
+  useRenameSession,
+  useReorderSessions,
+} from '@/services/chat'
 import { usePreferences } from '@/services/preferences'
-import { useWorktree, useProjects, useRunScripts } from '@/services/projects'
+import {
+  normalizeRunScripts,
+  useJeanConfig,
+  useProjects,
+  useRunScripts,
+  useWorktree,
+} from '@/services/projects'
 import { useGitHubPRs } from '@/services/github'
 import {
   useGitStatus,
@@ -56,9 +81,9 @@ import {
   performGitPull,
 } from '@/services/git-status'
 import { isBaseSession } from '@/types/projects'
-import type { Session } from '@/types/chat'
+import type { LabelData, Session } from '@/types/chat'
+import { invoke } from '@/lib/transport'
 import { isNativeApp } from '@/lib/environment'
-import { notify } from '@/lib/notifications'
 import { copyToClipboard } from '@/lib/clipboard'
 import { toast } from 'sonner'
 import { ChatWindow } from './ChatWindow'
@@ -66,13 +91,9 @@ import { ModalTerminalDrawer } from './ModalTerminalDrawer'
 import { ModalBrowserDrawer } from '@/components/browser/ModalBrowserDrawer'
 import { OpenInButton } from '@/components/open-in/OpenInButton'
 import { DevToolsDropdown } from './DevToolsDropdown'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { RunCommandsButton } from './RunCommandsButton'
 import { DEFAULT_KEYBINDINGS, formatShortcutDisplay } from '@/types/keybindings'
+import type { AppPreferences } from '@/types/preferences'
 import {
   computeSessionCardData,
   getResumeCommand,
@@ -157,6 +178,232 @@ interface SessionChatModalProps {
   onClose: () => void
 }
 
+interface SortableSessionTabProps {
+  card: SessionCardData
+  index: number
+  isActive: boolean
+  isDraggingTab: boolean
+  isRenaming: boolean
+  renameValue: string
+  sessionLabel: LabelData | undefined
+  sessionHasPlan: boolean
+  activeSessionCount: number
+  preferences: AppPreferences | undefined
+  worktreeId: string
+  onClick: () => void
+  onDoubleClick: () => void
+  onRenameValueChange: (value: string) => void
+  onRenameKeyDown: (e: React.KeyboardEvent) => void
+  onRenameBlur: () => void
+  onRenameInputRef: (node: HTMLInputElement | null) => void
+  onStartRename: () => void
+  onOpenLabelModal: () => void
+  onToggleReview: () => void
+  onArchive: () => void
+  onDelete: () => void
+  onCloseWorktree: () => void
+  onRequestCloseConfirm: (action: () => void) => void
+}
+
+function SortableSessionTab({
+  card,
+  index,
+  isActive,
+  isDraggingTab,
+  isRenaming,
+  renameValue,
+  sessionLabel,
+  sessionHasPlan,
+  activeSessionCount,
+  preferences,
+  worktreeId,
+  onClick,
+  onDoubleClick,
+  onRenameValueChange,
+  onRenameKeyDown,
+  onRenameBlur,
+  onRenameInputRef,
+  onStartRename,
+  onOpenLabelModal,
+  onToggleReview,
+  onArchive,
+  onDelete,
+  onCloseWorktree,
+  onRequestCloseConfirm,
+}: SortableSessionTabProps) {
+  const session = card.session
+  const status = card.status
+  const config = statusConfig[status]
+  const resumeCommand = getResumeCommand(session)
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: session.id,
+    disabled: isRenaming,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <button
+          ref={setNodeRef}
+          data-session-id={session.id}
+          type="button"
+          style={style}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+          className={cn(
+            'group/tab flex rounded items-center gap-2 px-2.5 py-1.5 text-xs transition-colors whitespace-nowrap border border-transparent touch-none',
+            isActive
+              ? 'bg-muted text-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+            status === 'waiting' &&
+              'border-dashed border-yellow-500 dark:border-yellow-400',
+            (isDragging || isDraggingTab) && 'opacity-50'
+          )}
+          {...attributes}
+          {...listeners}
+        >
+          <StatusIndicator
+            status={config.indicatorStatus}
+            variant={config.indicatorVariant}
+            className="h-1.5 w-1.5"
+          />
+          <SessionTypeIcon session={session} className="h-3.5 w-3.5" />
+          {index < 9 && (
+            <kbd className="shrink-0 rounded border border-border/50 px-1 py-px text-[9px] font-medium leading-none text-muted-foreground/70">
+              ⌘{index + 1}
+            </kbd>
+          )}
+          {isRenaming ? (
+            <input
+              ref={onRenameInputRef}
+              type="text"
+              value={renameValue}
+              onChange={e => onRenameValueChange(e.target.value)}
+              onBlur={onRenameBlur}
+              onKeyDown={onRenameKeyDown}
+              onClick={e => e.stopPropagation()}
+              className="w-full min-w-0 bg-transparent text-base outline-none md:text-xs"
+            />
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="truncate max-w-48">{session.name}</span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{session.name}</TooltipContent>
+            </Tooltip>
+          )}
+          {!isRenaming && (
+            <DismissButton
+              tooltip={
+                activeSessionCount <= 1 ? 'Close worktree' : 'Remove session'
+              }
+              onClick={e => {
+                e.stopPropagation()
+                if (activeSessionCount <= 1) {
+                  const action = () => {
+                    onDelete()
+                    onCloseWorktree()
+                  }
+                  const sessionIsEmpty = !session.message_count
+                  if (
+                    preferences?.confirm_session_close !== false &&
+                    !sessionIsEmpty
+                  ) {
+                    onRequestCloseConfirm(action)
+                  } else {
+                    action()
+                  }
+                } else {
+                  onArchive()
+                }
+              }}
+              className="ml-0.5 opacity-60 sm:opacity-0 sm:group-hover/tab:opacity-60 hover:!opacity-100"
+              size="xs"
+            />
+          )}
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-64">
+        <ContextMenuItem onSelect={onStartRename}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Rename
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={onOpenLabelModal}>
+          <Tag className="mr-2 h-4 w-4" />
+          {sessionLabel ? 'Remove Label' : 'Add Label'}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={onToggleReview}>
+          {status === 'review' ? (
+            <>
+              <EyeOff className="mr-2 h-4 w-4" />
+              Mark as Idle
+            </>
+          ) : (
+            <>
+              <Eye className="mr-2 h-4 w-4" />
+              Mark for Review
+            </>
+          )}
+        </ContextMenuItem>
+        {resumeCommand && (
+          <ContextMenuItem
+            onSelect={() => {
+              void copyToClipboard(resumeCommand)
+                .then(() => toast.success('Resume command copied'))
+                .catch(() => toast.error('Failed to copy resume command'))
+            }}
+          >
+            <Terminal className="mr-2 h-4 w-4" />
+            Copy Resume Command
+          </ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          disabled={!sessionHasPlan}
+          onSelect={() => {
+            useChatStore.getState().setActiveSession(worktreeId, session.id)
+            requestAnimationFrame(() => {
+              window.dispatchEvent(new CustomEvent('open-plan'))
+            })
+          }}
+        >
+          <FileText className="mr-2 h-4 w-4" />
+          Plan
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={onArchive}>
+          <Archive className="mr-2 h-4 w-4" />
+          Archive Session
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem variant="destructive" onSelect={onDelete}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete Session
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
+}
+
+function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
+  const next = [...items]
+  const [moved] = next.splice(fromIndex, 1)
+  if (moved === undefined) return items
+  next.splice(toIndex, 0, moved)
+  return next
+}
+
 export function SessionChatModal({
   worktreeId,
   worktreePath,
@@ -236,6 +483,16 @@ export function SessionChatModal({
   )
   const currentSessionId = activeSessionId ?? sessions[0]?.id ?? null
   const currentSession = sessions.find(s => s.id === currentSessionId) ?? null
+  const currentSessionTerminalId = useUIStore(state =>
+    currentSessionId ? state.sessionTerminalIds[currentSessionId] : undefined
+  )
+  const currentSessionTerminalExists = useTerminalStore(state =>
+    currentSessionTerminalId
+      ? (state.terminals[worktreeId] ?? []).some(
+          terminal => terminal.id === currentSessionTerminalId
+        )
+      : false
+  )
   // Canonical store state shared with canvas for consistent status derivation.
   const storeState = useCanvasStoreState()
   const planFilePaths = useChatStore(state => state.planFilePaths)
@@ -252,6 +509,70 @@ export function SessionChatModal({
       id ? (cards.find(c => c.session.id === id) ?? null) : null,
     [cards]
   )
+
+  useEffect(() => {
+    if (!isOpen || !currentSession || currentSessionTerminalExists) return
+    if (currentSession.primary_surface !== 'terminal') return
+
+    const command = currentSession.terminal_command
+    if (!command) return
+
+    let cancelled = false
+
+    const restoreTerminalSurface = async () => {
+      let commandArgs = currentSession.terminal_command_args ?? []
+
+      if (currentSession.backend) {
+        try {
+          const prepared = await invoke<{ commandArgs: string[] }>(
+            'prepare_backend_terminal_context',
+            {
+              sessionId: currentSession.id,
+              worktreeId,
+              backend: currentSession.backend,
+            }
+          )
+          commandArgs = [...prepared.commandArgs, ...commandArgs]
+        } catch (error) {
+          console.error('Failed to prepare backend terminal context:', error)
+        }
+      }
+
+      if (cancelled) return
+
+      const terminalStore = useTerminalStore.getState()
+      const uiStore = useUIStore.getState()
+      const existingTerminalId = uiStore.sessionTerminalIds[currentSession.id]
+      const existingTerminal = existingTerminalId
+        ? (terminalStore.terminals[worktreeId] ?? []).find(
+            terminal => terminal.id === existingTerminalId
+          )
+        : undefined
+
+      const terminalId =
+        existingTerminal?.id ??
+        terminalStore.addTerminal(
+          worktreeId,
+          command,
+          currentSession.terminal_label ?? currentSession.name,
+          {
+            kind: 'session',
+            commandArgs,
+            activate: false,
+            openPanel: false,
+          }
+        )
+
+      uiStore.setSessionPrimarySurface(currentSession.id, 'terminal')
+      uiStore.setSessionTerminalId(currentSession.id, terminalId)
+    }
+
+    void restoreTerminalSurface()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentSession, currentSessionTerminalExists, isOpen, worktreeId])
 
   // Track focused session's status so scroll fires when it changes position
   const currentSessionStatus =
@@ -284,6 +605,10 @@ export function SessionChatModal({
   const project = worktree
     ? projects?.find(p => p.id === worktree.project_id)
     : null
+  const { data: projectJeanConfig } = useJeanConfig(project?.path ?? null)
+  const projectRunScripts = normalizeRunScripts(projectJeanConfig?.scripts.run)
+  const effectiveRunScripts =
+    projectRunScripts.length > 0 ? projectRunScripts : runScripts
   const { data: openPRs } = useGitHubPRs(project?.path ?? null, 'open')
   const stackedOnPR =
     worktree?.base_branch && worktree.base_branch !== project?.default_branch
@@ -518,28 +843,27 @@ export function SessionChatModal({
       })
   }, [handleCreateSession, isOpen])
 
-  // Sorted tab order: attention and active sessions first, review next,
-  // idle/new empty sessions last.
-  // Within each tier, oldest first so click never reorders.
-  const sortedCards = useMemo(() => {
-    const priority: Record<string, number> = {
-      waiting: 0,
-      permission: 0,
-      planning: 1,
-      vibing: 2,
-      yoloing: 3,
-      review: 4,
-      completed: 4,
-      idle: 5,
-    }
-    return [...cards].sort((a, b) => {
-      const pa = priority[a.status] ?? 1
-      const pb = priority[b.status] ?? 1
-      if (pa !== pb) return pa - pb
-      // Stable secondary sort: oldest first (consistent across refetches)
-      return a.session.created_at - b.session.created_at
+  const reorderSessions = useReorderSessions()
+  const [draggedSessionId, setDraggedSessionId] = useState<string | null>(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
     })
-  }, [cards])
+  )
+
+  // Session tab order is user-controlled. Attention state is still shown by
+  // status indicators/borders, but does not forcibly reshuffle tabs.
+  const sortedCards = useMemo(
+    () =>
+      [...cards].sort((a, b) => {
+        const orderDelta = (a.session.order ?? 0) - (b.session.order ?? 0)
+        if (orderDelta !== 0) return orderDelta
+        return a.session.created_at - b.session.created_at
+      }),
+    [cards]
+  )
 
   const sortedSessions = useMemo(
     () => sortedCards.map(c => c.session),
@@ -550,6 +874,37 @@ export function SessionChatModal({
   useEffect(() => {
     sortedSessionsRef.current = sortedSessions
   }, [sortedSessions])
+
+  const handleSessionTabDragStart = useCallback((event: DragStartEvent) => {
+    setDraggedSessionId(String(event.active.id))
+  }, [])
+
+  const handleSessionTabDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const activeId = String(event.active.id)
+      const overId = event.over ? String(event.over.id) : null
+      if (!overId || activeId === overId) {
+        setDraggedSessionId(null)
+        return
+      }
+
+      const fromIndex = sortedSessions.findIndex(s => s.id === activeId)
+      const toIndex = sortedSessions.findIndex(s => s.id === overId)
+      if (fromIndex === -1 || toIndex === -1) {
+        setDraggedSessionId(null)
+        return
+      }
+
+      const nextSessions = moveItem(sortedSessions, fromIndex, toIndex)
+      reorderSessions.mutate({
+        worktreeId,
+        worktreePath,
+        sessionIds: nextSessions.map(session => session.id),
+      })
+      setDraggedSessionId(null)
+    },
+    [reorderSessions, sortedSessions, worktreeId, worktreePath]
+  )
 
   // Off-screen waiting tab indicators
   const { hasLeft: hasWaitingLeft, hasRight: hasWaitingRight } =
@@ -667,18 +1022,6 @@ export function SessionChatModal({
       new CustomEvent('open-git-diff', { detail: { type: 'branch' } })
     )
   }, [])
-
-  const handleRun = useCallback(() => {
-    const first = runScripts[0]
-    if (!first) {
-      notify('No run script configured in jean.json', undefined, {
-        type: 'error',
-      })
-      return
-    }
-    useTerminalStore.getState().startRun(worktreeId, first)
-    useTerminalStore.getState().setModalTerminalOpen(worktreeId, true)
-  }, [worktreeId, runScripts])
 
   const handleRunCommand = useCallback(
     (cmd: string) => {
@@ -896,84 +1239,15 @@ export function SessionChatModal({
                       <TooltipContent>Browser</TooltipContent>
                     </Tooltip>
                   )}
-                  {runScripts.length === 1 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          aria-label="Run"
-                          onClick={handleRun}
-                        >
-                          <Play
-                            className={`h-3 w-3 ${hasFailedTerminal ? 'text-red-500' : hasRunningTerminal ? 'text-amber-500 dark:text-yellow-400 animate-icon-glow' : ''}`}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {hasFailedTerminal
-                          ? 'Crashed'
-                          : hasRunningTerminal
-                            ? 'Running'
-                            : 'Run'}{' '}
-                        <kbd className="ml-1 text-[0.625rem] opacity-60">
-                          {runShortcut}
-                        </kbd>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  {runScripts.length > 1 && (
-                    <div className="flex items-center">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 rounded-r-none px-2 text-xs"
-                            aria-label="Run first command"
-                            onClick={handleRun}
-                          >
-                            <Play
-                              className={`h-3 w-3 ${hasFailedTerminal ? 'text-red-500' : hasRunningTerminal ? 'text-amber-500 dark:text-yellow-400 animate-icon-glow' : ''}`}
-                            />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {hasFailedTerminal
-                            ? 'Crashed'
-                            : hasRunningTerminal
-                              ? 'Running'
-                              : 'Run first command'}{' '}
-                          <kbd className="ml-1 text-[0.625rem] opacity-60">
-                            {runShortcut}
-                          </kbd>
-                        </TooltipContent>
-                      </Tooltip>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 rounded-l-none border-l border-border/50 px-1 text-xs"
-                            aria-label="Choose run command"
-                          >
-                            <ChevronDown className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {runScripts.map((cmd, i) => (
-                            <DropdownMenuItem
-                              key={i}
-                              onSelect={() => handleRunCommand(cmd)}
-                              className="font-mono text-xs"
-                            >
-                              {cmd}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                  {isNativeApp() && (
+                    <RunCommandsButton
+                      projectPath={project?.path ?? null}
+                      fallbackRunScripts={effectiveRunScripts}
+                      hasRunningTerminal={hasRunningTerminal}
+                      hasFailedTerminal={hasFailedTerminal}
+                      runShortcut={runShortcut}
+                      onRunCommand={handleRunCommand}
+                    />
                   )}
                 </div>
                 <ModalCloseButton onClick={handleClose} />
@@ -1010,22 +1284,44 @@ export function SessionChatModal({
                 viewportClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none touch-pan-x scrollbar-hide [-webkit-overflow-scrolling:touch]"
                 viewportRef={modalTabScrollRef}
               >
-                <div className="flex min-w-max items-center gap-1.5 py-1 px-3">
-                  {sortedCards.map((card, idx) => {
-                    const session = card.session
-                    const isActive = session.id === currentSessionId
-                    const status = card.status
-                    const config = statusConfig[status]
-                    const chatState = useChatStore.getState()
-                    const sessionLabel = chatState.sessionLabels[session.id]
-                    const sessionHasPlan =
-                      !!planFilePaths[session.id] || !!session.plan_file_path
-                    const resumeCommand = getResumeCommand(session)
-                    return (
-                      <ContextMenu key={session.id}>
-                        <ContextMenuTrigger asChild>
-                          <button
-                            data-session-id={session.id}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  modifiers={[restrictToHorizontalAxis]}
+                  onDragStart={handleSessionTabDragStart}
+                  onDragEnd={handleSessionTabDragEnd}
+                  onDragCancel={() => setDraggedSessionId(null)}
+                >
+                  <SortableContext
+                    items={sortedSessions.map(session => session.id)}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <div className="flex min-w-max items-center gap-1.5 py-1 px-3">
+                      {sortedCards.map((card, idx) => {
+                        const session = card.session
+                        const chatState = useChatStore.getState()
+                        const sessionLabel = chatState.sessionLabels[session.id]
+                        const sessionHasPlan =
+                          !!planFilePaths[session.id] ||
+                          !!session.plan_file_path
+                        const activeSessionCount = sessions.filter(
+                          s => !s.archived_at
+                        ).length
+
+                        return (
+                          <SortableSessionTab
+                            key={session.id}
+                            card={card}
+                            index={idx}
+                            isActive={session.id === currentSessionId}
+                            isDraggingTab={draggedSessionId === session.id}
+                            isRenaming={renamingSessionId === session.id}
+                            renameValue={renameValue}
+                            sessionLabel={sessionLabel}
+                            sessionHasPlan={sessionHasPlan}
+                            activeSessionCount={activeSessionCount}
+                            preferences={preferences}
+                            worktreeId={worktreeId}
                             onClick={() => handleTabClick(session.id)}
                             onDoubleClick={() =>
                               handleStartRenameImmediate(
@@ -1033,111 +1329,20 @@ export function SessionChatModal({
                                 session.name
                               )
                             }
-                            className={cn(
-                              'group/tab flex rounded items-center gap-2 px-2.5 py-1.5 text-xs transition-colors whitespace-nowrap border border-transparent',
-                              isActive
-                                ? 'bg-muted text-foreground'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                              status === 'waiting' &&
-                                'border-dashed border-yellow-500 dark:border-yellow-400'
-                            )}
-                          >
-                            <StatusIndicator
-                              status={config.indicatorStatus}
-                              variant={config.indicatorVariant}
-                              className="h-1.5 w-1.5"
-                            />
-                            {idx < 9 && (
-                              <kbd className="shrink-0 rounded border border-border/50 px-1 py-px text-[9px] font-medium leading-none text-muted-foreground/70">
-                                ⌘{idx + 1}
-                              </kbd>
-                            )}
-                            {renamingSessionId === session.id ? (
-                              <input
-                                ref={renameInputRef}
-                                type="text"
-                                value={renameValue}
-                                onChange={e => setRenameValue(e.target.value)}
-                                onBlur={() => handleRenameSubmit(session.id)}
-                                onKeyDown={e =>
-                                  handleRenameKeyDown(e, session.id)
-                                }
-                                onClick={e => e.stopPropagation()}
-                                className="w-full min-w-0 bg-transparent text-base outline-none md:text-xs"
-                              />
-                            ) : (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="truncate max-w-48">
-                                    {session.name}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">
-                                  {session.name}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                            {renamingSessionId !== session.id && (
-                              <DismissButton
-                                tooltip={
-                                  sessions.filter(s => !s.archived_at).length <=
-                                  1
-                                    ? 'Close worktree'
-                                    : 'Remove session'
-                                }
-                                onClick={e => {
-                                  e.stopPropagation()
-                                  const activeSessions = sessions.filter(
-                                    s => !s.archived_at
-                                  )
-                                  if (activeSessions.length <= 1) {
-                                    const action = () => {
-                                      handleDeleteSession(session.id)
-                                      onClose()
-                                    }
-                                    const sessionIsEmpty =
-                                      !session.message_count
-                                    if (
-                                      preferences?.confirm_session_close !==
-                                        false &&
-                                      !sessionIsEmpty
-                                    ) {
-                                      pendingCloseAction.current = action
-                                      setCloseConfirmOpen(true)
-                                    } else {
-                                      action()
-                                    }
-                                  } else {
-                                    selectVisualNeighbor(session.id)
-                                    handleArchiveSession(session.id)
-                                  }
-                                }}
-                                className="ml-0.5 opacity-60 sm:opacity-0 sm:group-hover/tab:opacity-60 hover:!opacity-100"
-                                size="xs"
-                              />
-                            )}
-                          </button>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent className="w-64">
-                          <ContextMenuItem
-                            onSelect={() =>
+                            onRenameValueChange={setRenameValue}
+                            onRenameKeyDown={e =>
+                              handleRenameKeyDown(e, session.id)
+                            }
+                            onRenameBlur={() => handleRenameSubmit(session.id)}
+                            onRenameInputRef={renameInputRef}
+                            onStartRename={() =>
                               handleStartRename(session.id, session.name)
                             }
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Rename
-                          </ContextMenuItem>
-                          <ContextMenuItem
-                            onSelect={() => {
+                            onOpenLabelModal={() => {
                               setLabelTargetSessionId(session.id)
                               setLabelModalOpen(true)
                             }}
-                          >
-                            <Tag className="mr-2 h-4 w-4" />
-                            {sessionLabel ? 'Remove Label' : 'Add Label'}
-                          </ContextMenuItem>
-                          <ContextMenuItem
-                            onSelect={() => {
+                            onToggleReview={() => {
                               const { reviewingSessions, setSessionReviewing } =
                                 useChatStore.getState()
                               const isReviewing =
@@ -1145,71 +1350,22 @@ export function SessionChatModal({
                                 !!session.review_results
                               setSessionReviewing(session.id, !isReviewing)
                             }}
-                          >
-                            {status === 'review' ? (
-                              <>
-                                <EyeOff className="mr-2 h-4 w-4" />
-                                Mark as Idle
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Mark for Review
-                              </>
-                            )}
-                          </ContextMenuItem>
-                          {resumeCommand && (
-                            <ContextMenuItem
-                              onSelect={() => {
-                                void copyToClipboard(resumeCommand)
-                                  .then(() =>
-                                    toast.success('Resume command copied')
-                                  )
-                                  .catch(() =>
-                                    toast.error('Failed to copy resume command')
-                                  )
-                              }}
-                            >
-                              <Terminal className="mr-2 h-4 w-4" />
-                              Copy Resume Command
-                            </ContextMenuItem>
-                          )}
-                          <ContextMenuSeparator />
-                          <ContextMenuItem
-                            disabled={!sessionHasPlan}
-                            onSelect={() => {
-                              useChatStore
-                                .getState()
-                                .setActiveSession(worktreeId, session.id)
-                              requestAnimationFrame(() => {
-                                window.dispatchEvent(
-                                  new CustomEvent('open-plan')
-                                )
-                              })
+                            onArchive={() => {
+                              selectVisualNeighbor(session.id)
+                              handleArchiveSession(session.id)
                             }}
-                          >
-                            <FileText className="mr-2 h-4 w-4" />
-                            Plan
-                          </ContextMenuItem>
-                          <ContextMenuItem
-                            onSelect={() => handleArchiveSession(session.id)}
-                          >
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archive Session
-                          </ContextMenuItem>
-                          <ContextMenuSeparator />
-                          <ContextMenuItem
-                            variant="destructive"
-                            onSelect={() => handleDeleteSession(session.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Session
-                          </ContextMenuItem>
-                        </ContextMenuContent>
-                      </ContextMenu>
-                    )
-                  })}
-                </div>
+                            onDelete={() => handleDeleteSession(session.id)}
+                            onCloseWorktree={onClose}
+                            onRequestCloseConfirm={action => {
+                              pendingCloseAction.current = action
+                              setCloseConfirmOpen(true)
+                            }}
+                          />
+                        )
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
                 <ScrollBar orientation="horizontal" className="h-1" />
               </ScrollArea>
               <Tooltip>

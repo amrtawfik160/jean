@@ -5,6 +5,7 @@ import { useUIStore } from '@/store/ui-store'
 import { useProjectsStore } from '@/store/projects-store'
 import { chatQueryKeys } from '@/services/chat'
 import type { QueryClient } from '@tanstack/react-query'
+import { getModelFastInfo } from '@/types/preferences'
 import type {
   ThinkingLevel,
   EffortLevel,
@@ -31,6 +32,8 @@ interface UseToolbarHandlersParams {
         selected_codex_model?: string
         selected_opencode_model?: string
         selected_cursor_model?: string
+        favorite_models?: string[]
+        fast_mode_models?: string[]
         custom_cli_profiles?: { name: string }[]
       }
     | undefined
@@ -219,16 +222,64 @@ export function useToolbarHandlers({
 
   const handleTabBackendSwitch = useCallback(() => {
     if ((session?.messages?.length ?? 0) > 0) return
-    if (installedBackends.length <= 1) return
-    const currentIndex = installedBackends.indexOf(selectedBackend)
-    const nextIndex = (currentIndex + 1) % installedBackends.length
-    const nextBackend = installedBackends[nextIndex]
-    if (nextBackend) handleToolbarBackendChange(nextBackend)
+    const favorites = preferences?.favorite_models ?? []
+    if (favorites.length <= 1) return
+
+    const installed = new Set(installedBackends)
+    const validFavorites = favorites
+      .map(key => {
+        const [backend, ...modelParts] = key.split(':')
+        const model = modelParts.join(':')
+        if (!backend || !model) return null
+        if (!installed.has(backend as typeof selectedBackend)) return null
+        return { key, backend: backend as typeof selectedBackend, model }
+      })
+      .filter(
+        (
+          entry
+        ): entry is {
+          key: string
+          backend: typeof selectedBackend
+          model: string
+        } => Boolean(entry)
+      )
+
+    if (validFavorites.length <= 1) return
+
+    const currentModel =
+      session?.selected_model ??
+      useChatStore.getState().selectedModels[activeSessionId ?? ''] ??
+      ''
+    const currentInfo = getModelFastInfo(selectedBackend, currentModel)
+    const currentBaseModel = currentInfo.baseModel || currentModel
+    const currentKey = `${selectedBackend}:${currentBaseModel}`
+    const currentIndex = validFavorites.findIndex(fav => fav.key === currentKey)
+    const next =
+      validFavorites[
+        currentIndex >= 0 ? (currentIndex + 1) % validFavorites.length : 0
+      ]
+    if (!next) return
+
+    const fastKey = `${next.backend}:${getModelFastInfo(next.backend, next.model).baseModel || next.model}`
+    const shouldUseFast = (preferences?.fast_mode_models ?? []).includes(
+      fastKey
+    )
+    const fastInfo = getModelFastInfo(next.backend, next.model)
+    const model =
+      shouldUseFast && fastInfo.supportsFast && fastInfo.fastModel
+        ? fastInfo.fastModel
+        : next.model
+
+    handleToolbarBackendModelChange(next.backend, model)
   }, [
+    activeSessionId,
     session?.messages?.length,
+    session?.selected_model,
     selectedBackend,
     installedBackends,
-    handleToolbarBackendChange,
+    preferences?.favorite_models,
+    preferences?.fast_mode_models,
+    handleToolbarBackendModelChange,
   ])
 
   const handleToolbarProviderChange = useCallback(

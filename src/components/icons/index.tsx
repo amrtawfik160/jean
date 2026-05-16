@@ -71,6 +71,14 @@ import {
   Home01Icon,
   IdeaIcon,
   ImageIcon as HugeImageIcon,
+  CameraIcon as HugeCameraIcon,
+  SmartPhone01Icon as HugeSmartPhoneIcon,
+  Tablet01Icon as HugeTabletIcon,
+  ComputerIcon as HugeComputerIcon,
+  CursorIcon as HugeMousePointerIcon,
+  TextFontIcon as HugeTextFontIcon,
+  ArrowUpRight01Icon as HugeArrowUpRightIcon,
+  Eraser01Icon as HugeEraserIcon,
   InformationCircleIcon,
   KeyboardIcon,
   Layers01Icon,
@@ -249,6 +257,7 @@ export const BarChart3 = make(BarChartIcon)
 export const BellDot = make(BellDotIcon)
 export const Blocks = make(PuzzleIcon)
 export const Bot = make(BotIcon)
+export const Rabbit = Bot
 export const Brain = make(BrainIcon)
 export const Briefcase = make(Briefcase01Icon)
 export const Code = make(CodeIcon)
@@ -267,6 +276,16 @@ export const Heart = make(StarIcon)
 export const Home = make(Home01Icon)
 export const Image = make(HugeImageIcon)
 export const ImageIcon = Image
+export const Camera = make(HugeCameraIcon)
+export const Smartphone = make(HugeSmartPhoneIcon)
+export const Tablet = make(HugeTabletIcon)
+export const Monitor = make(HugeComputerIcon)
+export const MousePointer = make(HugeMousePointerIcon)
+export const MousePointer2 = MousePointer
+export const Crosshair = make(HugeMousePointerIcon)
+export const Type = make(HugeTextFontIcon)
+export const ArrowUpRight = make(HugeArrowUpRightIcon)
+export const Eraser = make(HugeEraserIcon)
 export const Keyboard = make(KeyboardIcon)
 export const KeyRound = make(KeyboardIcon)
 export const Layers = make(Layers01Icon)

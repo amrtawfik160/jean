@@ -49,11 +49,15 @@ export function useCanvasKeyboardNav<T>({
   // Use refs to avoid stale closures in event handler
   const selectedIndexRef = useRef(selectedIndex)
 
-  selectedIndexRef.current = selectedIndex
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex
+  }, [selectedIndex])
 
   const cardsLengthRef = useRef(cards.length)
 
-  cardsLengthRef.current = cards.length
+  useEffect(() => {
+    cardsLengthRef.current = cards.length
+  }, [cards.length])
 
   // Throttle rapid key presses
   const lastKeyTimeRef = useRef(0)

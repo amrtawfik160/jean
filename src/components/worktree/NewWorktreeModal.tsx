@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { getModifierSymbol } from '@/lib/platform'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { Zap, CircleDot, GitPullRequest, Shield, GitBranch } from '@/components/icons'
+import {
+  Zap,
+  CircleDot,
+  GitPullRequest,
+  Shield,
+  GitBranch,
+} from '@/components/icons'
 import { LinearIcon } from '@/components/icons/LinearIcon'
 import type { LucideIcon } from '@/components/icons'
 import { useGhLogin } from '@/hooks/useGhLogin'

@@ -6,11 +6,14 @@ import {
   useAnyBlockingModalOpen,
   useBrowserTabActions,
 } from '@/hooks/useBrowserPane'
+import { useBrowserDevTools } from '@/hooks/useBrowserDevTools'
 import { useChatStore } from '@/store/chat-store'
 import { usePorts } from '@/services/projects'
 import { resolveDefaultTabUrl } from './default-tab-url'
+import { BrowserDevToolsBar } from './BrowserDevToolsBar'
 import { BrowserTabContent } from './BrowserTabContent'
 import { BrowserToolbar } from './BrowserToolbar'
+import { ScreenshotAnnotateModal } from './ScreenshotAnnotateModal'
 import type { BrowserTab } from '@/types/browser'
 
 // Stable empty-array reference for the no-tabs case. A fresh `[]` literal each
@@ -70,9 +73,18 @@ export const BrowserView = memo(function BrowserView({
     useBrowserStore.getState().addTab(worktreeId, resolveDefaultTabUrl(ports))
   }, [isVisible, tabs.length, worktreeId, worktreePath, portsFetched, ports])
 
+  const devtools = useBrowserDevTools(worktreeId)
+
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
       <BrowserToolbar worktreeId={worktreeId} onClose={onClose} />
+      <BrowserDevToolsBar worktreeId={worktreeId} />
+      <ScreenshotAnnotateModal
+        open={devtools.annotateOpen}
+        onOpenChange={devtools.setAnnotateOpen}
+        imagePath={devtools.annotateImagePath}
+        onSave={devtools.onAnnotateSaved}
+      />
       <div className="relative flex-1 overflow-hidden">
         {activeError && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background p-6 text-center">
