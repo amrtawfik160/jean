@@ -125,6 +125,8 @@ interface UIState {
   contextViewerOpen: boolean
   /** Whether the feature tour dialog is open */
   featureTourOpen: boolean
+  /** Whether the one-time Jean MCP introduction dialog is open */
+  jeanMcpIntroOpen: boolean
   /** Whether UI state has been restored from persisted storage */
   uiStateInitialized: boolean
   /** Pending app update that user skipped — shown as indicator in title bar */
@@ -217,6 +219,7 @@ interface UIState {
   setPlanDialogOpen: (open: boolean) => void
   setContextViewerOpen: (open: boolean) => void
   setFeatureTourOpen: (open: boolean) => void
+  setJeanMcpIntroOpen: (open: boolean) => void
   setUIStateInitialized: (initialized: boolean) => void
   setPendingUpdateVersion: (version: string | null) => void
   setUpdateModalVersion: (version: string | null) => void
@@ -290,6 +293,7 @@ export const useUIStore = create<UIState>()(
       planDialogOpen: false,
       contextViewerOpen: false,
       featureTourOpen: false,
+      jeanMcpIntroOpen: false,
       uiStateInitialized: false,
       pendingUpdateVersion: null,
       updateModalVersion: null,
@@ -885,6 +889,9 @@ export const useUIStore = create<UIState>()(
 
       setFeatureTourOpen: (open: boolean) =>
         set({ featureTourOpen: open }, undefined, 'setFeatureTourOpen'),
+
+      setJeanMcpIntroOpen: (open: boolean) =>
+        set({ jeanMcpIntroOpen: open }, undefined, 'setJeanMcpIntroOpen'),
 
       setUIStateInitialized: (initialized: boolean) =>
         set(
