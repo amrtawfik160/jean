@@ -10,6 +10,7 @@ export type KeybindingAction =
   | 'open_in_modal'
   | 'open_magic_modal'
   | 'new_session'
+  | 'open_new_session_modal'
   | 'next_session'
   | 'previous_session'
   | 'close_session'
@@ -81,6 +82,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingsMap = {
   open_in_modal: 'mod+o',
   open_magic_modal: 'mod+m',
   new_session: 'mod+t',
+  open_new_session_modal: 'mod+shift+t',
   next_session: 'mod+alt+arrowright',
   previous_session: 'mod+alt+arrowleft',
   close_session: 'mod+shift+w',
@@ -95,7 +97,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingsMap = {
   approve_plan_worktree_yolo: 'mod+alt+y',
   open_plan: 'p',
   open_recap: 'r',
-  restore_last_archived: 'mod+shift+t',
+  restore_last_archived: 'mod+alt+shift+t',
   focus_canvas_search: 'slash',
   toggle_terminal: 'mod+backquote',
   toggle_browser: 'mod+shift+backquote',
@@ -218,8 +220,15 @@ export const KEYBINDING_DEFINITIONS: KeybindingDefinition[] = [
   {
     action: 'new_session',
     label: 'New session',
-    description: 'Create a new chat session',
+    description: 'Open the configured default new session',
     default_shortcut: 'mod+t',
+    category: 'chat',
+  },
+  {
+    action: 'open_new_session_modal',
+    label: 'New session picker',
+    description: 'Choose what to open for a new session',
+    default_shortcut: 'mod+shift+t',
     category: 'chat',
   },
   {
@@ -326,7 +335,7 @@ export const KEYBINDING_DEFINITIONS: KeybindingDefinition[] = [
     action: 'restore_last_archived',
     label: 'Restore archived',
     description: 'Restore the most recently archived worktree or session',
-    default_shortcut: 'mod+shift+t',
+    default_shortcut: 'mod+alt+shift+t',
     category: 'navigation',
   },
   {

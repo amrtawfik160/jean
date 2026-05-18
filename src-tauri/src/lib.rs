@@ -215,6 +215,8 @@ pub struct AppPreferences {
     pub default_execution_mode: String, // Default execution mode: "plan", "build", or "yolo"
     #[serde(default = "default_backend")]
     pub default_backend: String, // Default CLI backend: "claude", "codex", "opencode", or "cursor"
+    #[serde(default = "default_new_session_kind")]
+    pub default_new_session_kind: String, // Default new session action: "chat", "terminal", or a CLI backend
     #[serde(default = "default_codex_model")]
     pub selected_codex_model: String, // Default Codex model
     #[serde(default = "default_opencode_model")]
@@ -475,6 +477,10 @@ fn default_execution_mode() -> String {
 
 fn default_backend() -> String {
     "claude".to_string()
+}
+
+fn default_new_session_kind() -> String {
+    "chat".to_string()
 }
 
 fn default_cli_source() -> String {
@@ -1139,19 +1145,31 @@ Investigate the loaded Linear {linearWord} ({linearRefs})
 fn default_release_notes_prompt() -> String {
     r#"Generate release notes for changes since the `{tag}` release ({previous_release_name}).
 
+## Merged pull requests and detected issue references
+
+{pull_requests}
+
+## Required PR/issue reference formats
+
+{related_pull_requests}
+
 ## Commits since {tag}
 
 {commits}
 
 ## Instructions
 
-- Write a concise release title
-- Group changes into categories: Features, Fixes, Improvements, Breaking Changes (only include categories that have entries)
-- Use bullet points with brief descriptions
-- Reference PR numbers if visible in commit messages
-- Skip merge commits and trivial changes (typos, formatting)
-- Write in past tense ("Added", "Fixed", "Improved")
-- Keep it concise and user-facing (skip internal implementation details)"#
+- Write a concise release title.
+- Group changes into categories: Features, Fixes, Improvements, Breaking Changes (only include categories that have entries).
+- Explicitly use the merged pull request metadata above as the primary source, then use commits as fallback context.
+- Inspect PR titles, PR bodies, and PR commit messages for GitHub closing keywords: close/closes/closed, fix/fixes/fixed, resolve/resolves/resolved.
+- Always normalize closing keywords to lowercase final forms: closes, fixes, resolves.
+- Reference the PR number for each bullet when known: `(#123)`.
+- If a PR closes/fixes/resolves issues, include the issue refs after the PR using the detected keyword: `(#123, fixes #456, #789)`.
+- Do not invent PR numbers or issue references; only use the detected metadata above.
+- Skip merge commits and trivial changes (typos, formatting).
+- Write in past tense ("Added", "Fixed", "Improved").
+- Keep it concise and user-facing (skip internal implementation details)."#
         .to_string()
 }
 
@@ -1623,6 +1641,7 @@ impl Default for AppPreferences {
             confirm_session_close: default_confirm_session_close(),
             default_execution_mode: default_execution_mode(),
             default_backend: default_backend(),
+            default_new_session_kind: default_new_session_kind(),
             selected_codex_model: default_codex_model(),
             selected_opencode_model: default_opencode_model(),
             selected_cursor_model: default_cursor_model(),

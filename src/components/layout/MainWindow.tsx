@@ -340,7 +340,7 @@ export function MainWindow() {
     handleConfirmRequired
   )
 
-  // Handle CMD+SHIFT+T to restore last archived item
+  // Handle restore-last-archived keybinding
   useRestoreLastArchived()
 
   // Archive modal state (triggered by command palette or sidebar button)
