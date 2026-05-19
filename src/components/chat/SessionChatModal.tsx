@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type RefObject,
 } from 'react'
 import {
@@ -191,6 +192,7 @@ interface SortableSessionTabProps {
   preferences: AppPreferences | undefined
   worktreeId: string
   onClick: () => void
+  onAuxClick: (e: MouseEvent<HTMLButtonElement>) => void
   onDoubleClick: () => void
   onRenameValueChange: (value: string) => void
   onRenameKeyDown: (e: React.KeyboardEvent) => void
@@ -218,6 +220,7 @@ function SortableSessionTab({
   preferences,
   worktreeId,
   onClick,
+  onAuxClick,
   onDoubleClick,
   onRenameValueChange,
   onRenameKeyDown,
@@ -261,6 +264,7 @@ function SortableSessionTab({
           type="button"
           style={style}
           onClick={onClick}
+          onAuxClick={onAuxClick}
           onDoubleClick={onDoubleClick}
           className={cn(
             'group/tab flex rounded items-center gap-2 px-2.5 py-1.5 text-xs transition-colors whitespace-nowrap border border-transparent touch-none',
@@ -755,6 +759,46 @@ export function SessionChatModal({
     pendingCloseAction.current = null
     setCloseConfirmOpen(false)
   }, [])
+
+  const removeSessionTab = useCallback(
+    (session: Session) => {
+      const activeSessions = sessions.filter(s => !s.archived_at)
+      if (activeSessions.length <= 1) {
+        const action = () => {
+          handleDeleteSession(session.id)
+          onClose()
+        }
+        const sessionIsEmpty = !session.message_count
+        if (preferences?.confirm_session_close !== false && !sessionIsEmpty) {
+          pendingCloseAction.current = action
+          setCloseConfirmOpen(true)
+        } else {
+          action()
+        }
+      } else {
+        selectVisualNeighbor(session.id)
+        handleArchiveSession(session.id)
+      }
+    },
+    [
+      sessions,
+      handleDeleteSession,
+      onClose,
+      preferences?.confirm_session_close,
+      selectVisualNeighbor,
+      handleArchiveSession,
+    ]
+  )
+
+  const handleTabAuxClick = useCallback(
+    (e: MouseEvent<HTMLButtonElement>, session: Session) => {
+      if (e.button !== 1) return
+      e.preventDefault()
+      e.stopPropagation()
+      removeSessionTab(session)
+    },
+    [removeSessionTab]
+  )
 
   useEffect(() => {
     if (!isOpen) return
@@ -1332,6 +1376,7 @@ export function SessionChatModal({
                             preferences={preferences}
                             worktreeId={worktreeId}
                             onClick={() => handleTabClick(session.id)}
+                            onAuxClick={e => handleTabAuxClick(e, session)}
                             onDoubleClick={() =>
                               handleStartRenameImmediate(
                                 session.id,
